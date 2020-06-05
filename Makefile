@@ -32,6 +32,7 @@ CC      = sdcc
 AR 	= sdar
 ifeq ($(NODEBUG), 1)
     CFLAGS =-mstm8  -l$(OBJLIBNDB) --out-fmt-ihx -DUSE_STDPERIPH_DRIVER --all-callee-saves --verbose --stack-auto --fverbose-asm --no-peep --opt-code-speed
+#    CFLAGS =-mstm8  -l$(OBJLIBNDB) --out-fmt-s19 -DUSE_STDPERIPH_DRIVER --all-callee-saves --verbose --stack-auto --fverbose-asm --no-peep --opt-code-speed
     TARGET = $(OUTPUT_DIR)/$(TARGETNAME).ihx
 else
 	CFLAGS =-mstm8  -l$(OBJLIB) --debug --out-fmt-elf -DUSE_STDPERIPH_DRIVER --all-callee-saves --verbose --stack-auto --fverbose-asm --no-peep --opt-code-speed
