@@ -5,8 +5,13 @@
  *      Author: daandegroot
  */
 
+#include "stm8s.h"
+
+
 #ifndef INC_FILTERS_H_
 #define INC_FILTERS_H_
+
+typedef   signed long long     int64_t;
 
 
 #define CONCAT(a,b)											a ## b
@@ -20,6 +25,19 @@
 #define FILTER_LINE(name, nr)								CONCAT(name,_filter_memory)[nr - 1] = input * (c ## nr) + CONCAT(name,_filter_memory)[nr]
 #define FILTER_LAST_LINE(name, nr)							CONCAT(name,_filter_memory)[nr - 1] = input * (c ## nr)
 #define FILTER_FIRST_LINE(name, type)						type retval	= input * c0 + CONCAT(name,_filter_memory)[0]
+
+/*
+ * mem save
+ */
+
+//#define FILTER_MEMORY_MEM_SAVE(name, type, size)			volatile type CONCAT(name,_filter_memory)[(size/2) + 1] = {0};
+//
+//#define FILTER_FIRST_LINE_MEM_SAVE_(name, type)				type retval	= input * c0 + CONCAT(name,_filter_memory)[0]
+//#define FILTER_LINE_MEM_SAVE_MOVE(name, nr)					CONCAT(name,_filter_memory)[(nr/2) - 1] = input * (c ## nr) + CONCAT(name,_filter_memory)[(nr/2)]
+//#define FILTER_LINE_MEM_SAVE_STATIONARY(name, nr)			CONCAT(name,_filter_memory)[((nr - 1)/2)] = input * (c ## nr) + CONCAT(name,_filter_memory)[((nr - 1)/2)]
+//
+//#define FILTER_LAST_LINE_MEM_SAVE_EVEN(name, nr)			CONCAT(name,_filter_memory)[(nr/2) - 1] = input * (c ## nr)
+//#define FILTER_LAST_LINE_MEM_SAVE_ODD(name, nr)				FILTER_LINE_MEM_SAVE_STATIONARY(name, nr)
 
 #define FILTER_MEMORY_ACCES(name, indx)						CONCAT(name,_filter_memory)[indx]
 
