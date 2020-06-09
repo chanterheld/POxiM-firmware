@@ -40,10 +40,9 @@
 #define c29	(0)
 #define c30	(0)
 
+#define FILTER_NAME				fir_template
 #define filter_input_type		short
 #define filter_output_type		short
-#define FILTER_NAME				template
-
 
 FILTER_MEMORY(FILTER_NAME, filter_output_type, 30);
 
