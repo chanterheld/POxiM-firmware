@@ -1,6 +1,33 @@
 #include "stm8s.h"
 #include "stm8s_it.h"
 
+
+
+
+/*
+ * filter headers:
+ */
+int16_t stage1_fir_filter_advance(int8_t input, char output_cycle);
+int32_t stage2_fir_filter_advance(int16_t input, char output_cycle);
+
+int32_t stage3_r_fir_filter_advance(int32_t input, char output_cycle);
+int32_t stage3_ir_fir_filter_advance(int32_t input, char output_cycle);
+
+int32_t stage4_r_fir_filter_advance(int32_t input, char output_cycle);
+int32_t stage4_ir_fir_filter_advance(int32_t input, char output_cycle);
+
+int32_t stage5_r_fir_filter_advance(int32_t input, char output_cycle);
+int32_t stage5_ir_fir_filter_advance(int32_t input, char output_cycle);
+
+int32_t stage6_r_fir_filter_advance(int32_t input, char output_cycle);
+int32_t stage6_ir_fir_filter_advance(int32_t input, char output_cycle);
+
+int32_t stage7_r_fir_filter_advance(int32_t input, char output_cycle);
+int32_t stage7_ir_fir_filter_advance(int32_t input, char output_cycle);
+
+int32_t stage8_r_fir_filter_advance(int32_t input);
+int32_t stage8_ir_fir_filter_advance(int32_t input);
+
 /*
  * This value needs to be between 2500 - (nr of adc clock cycles) and (255 * max adc multiplication factor for feedback)
  * this is thus 2388 and 2040 (for 112 and 8 respectively)
@@ -61,10 +88,6 @@ void databuffer_write_new_data(databuffer_type input){
 }
 
 
-
-
-
-
 void main(void)
 {
 
@@ -79,6 +102,16 @@ void main(void)
 	 */
 	GPIO_Init(GPIOD, GPIO_PIN_2, GPIO_MODE_OUT_OD_HIZ_FAST);
 	GPIO_Init(GPIOD, GPIO_PIN_3, GPIO_MODE_OUT_OD_HIZ_FAST);
+
+	GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_OUT_OD_HIZ_FAST);
+	GPIO_Init(GPIOA, GPIO_PIN_2, GPIO_MODE_OUT_OD_HIZ_FAST);
+	GPIO_Init(GPIOA, GPIO_PIN_3, GPIO_MODE_OUT_OD_HIZ_FAST);
+
+	GPIO_Init(GPIOB, GPIO_PIN_4, GPIO_MODE_OUT_OD_HIZ_FAST);
+	GPIO_Init(GPIOB, GPIO_PIN_5, GPIO_MODE_OUT_OD_HIZ_FAST);
+
+	GPIO_Init(GPIOC, GPIO_PIN_5, GPIO_MODE_OUT_OD_HIZ_FAST);
+	GPIO_Init(GPIOC, GPIO_PIN_6, GPIO_MODE_OUT_OD_HIZ_FAST);
 
 
 	/* not sure if needed but set adc input pin to floating input*/
@@ -102,8 +135,104 @@ void main(void)
 	/* Enable timer 1*/
 	TIM1_Cmd(ENABLE);
 
+	volatile int8_t input = 123;
+
+//	GPIO_Init(GPIOD, GPIO_PIN_2, GPIO_MODE_OUT_PP_HIGH_FAST);
+//	GPIO_WriteHigh(GPIOD, GPIO_PIN_2);
+
+//	uint8_t stage1_gate = 0;
+//	uint8_t stage2_gate = 0;
+//	uint8_t stage3_gate = 0;
+//	uint8_t stage4_gate = 0;
+//	uint8_t stage5_gate = 0;
+//	uint8_t stage6_gate = 0;
+//	uint8_t stage7_gate = 0;
+//
+//	uint8_t stage1_out = 0;
+//	uint8_t stage2_out = 0;
+//
+//	uint32_t stage3_r_out = 0;
+//	uint32_t stage3_ir_out = 0;
+//
+//	uint32_t stage4_r_out = 0;
+//	uint32_t stage4_ir_out = 0;
+//
+//	uint32_t stage5_r_out = 0;
+//	uint32_t stage5_ir_out = 0;
+//
+//	uint32_t stage6_r_out = 0;
+//	uint32_t stage6_ir_out = 0;
+//
+//	uint32_t stage7_r_out = 0;
+//	uint32_t stage7_ir_out = 0;
+//
+//	uint32_t stage8_r_out = 0;
+//	uint32_t stage8_ir_out = 0;
+
 	while (1)
 	{
+
+//		stage1_out = stage1_fir_filter_advance(input, stage1_gate);
+//
+//		stage1_gate ^= 0x1;
+//		if(stage1_gate == 1){
+//			continue;
+//		}
+//
+//
+//		stage2_out = stage2_fir_filter_advance(stage1_out, stage2_gate);
+//
+//		stage2_gate ^= 0x1;
+//		if(stage2_gate == 1){
+//			continue;
+//		}
+//
+//		stage3_r_out = stage3_r_fir_filter_advance(stage2_out, stage3_gate);
+//		stage3_ir_out = stage3_ir_fir_filter_advance(stage2_out, stage3_gate);
+
+//		stage3_gate ^= 0x1;
+//		if(stage3_gate == 1){
+//			continue;
+//		}
+//
+//		stage4_r_out = stage4_r_fir_filter_advance(stage3_r_out, stage4_gate);
+//		stage4_ir_out = stage4_ir_fir_filter_advance(stage3_ir_out, stage4_gate);
+//
+//		stage4_gate ^= 0x1;
+//		if(stage4_gate == 1){
+//			continue;
+//		}
+//
+//		stage5_r_out = stage5_r_fir_filter_advance(stage4_r_out, stage5_gate);
+//		stage5_ir_out = stage5_ir_fir_filter_advance(stage4_ir_out, stage5_gate);
+//
+//		stage5_gate ^= 0x1;
+//		if(stage5_gate == 1){
+//			continue;
+//		}
+//
+//		stage6_r_out = stage6_r_fir_filter_advance(stage5_r_out, stage6_gate);
+//		stage6_ir_out = stage6_ir_fir_filter_advance(stage5_ir_out, stage6_gate);
+//
+//		stage3_gate ^= 0x1;
+//		if(stage3_gate == 1){
+//			continue;
+//		}
+//
+//		stage7_r_out = stage3_r_fir_filter_advance(stage6_r_out, stage7_gate);
+//		stage7_ir_out = stage3_ir_fir_filter_advance(stage6_ir_out, stage7_gate);
+//
+//		stage7_gate ^= 0x1;
+//		if(stage7_gate == 1){
+//			continue;
+//		}
+//
+//
+//		stage8_r_out = stage8_r_fir_filter_advance(stage7_r_out);
+//		stage8_ir_out = stage8_ir_fir_filter_advance(stage7_ir_out);
+
+
+//		GPIO_WriteReverse(GPIOD, GPIO_PIN_2);
 
 	}
 
