@@ -27,28 +27,30 @@
 #define filter_output_type		int32_t
 
 
-FILTER_MEMORY_MEM_SAVE(FILTER_NAME, int64_t, FILTER_SIZE);
+FILTER_MEMORY_MEM_SAVE(FILTER_NAME, filter_output_type, FILTER_SIZE);
 
 DEC_FIR_FILTER_ADVANCE(FILTER_NAME, filter_input_type, filter_output_type){
+
+	int64_t temp;
 
 	if(output_cycle == 1){
 
 		FILTER_FIRST_LINE_MEM_SAVE(FILTER_NAME, int64_t);
 
-		FILTER_LINE_MEM_SAVE_MOVE(FILTER_NAME, 2);
-		FILTER_LINE_MEM_SAVE_MOVE(FILTER_NAME, 4);
-		FILTER_LINE_MEM_SAVE_MOVE(FILTER_NAME, 6);
+		FILTER_LINE_MEM_SAVE_MOVE_CAST(FILTER_NAME, 2, filter_output_type);
+		FILTER_LINE_MEM_SAVE_MOVE_CAST(FILTER_NAME, 4, filter_output_type);
+		FILTER_LINE_MEM_SAVE_MOVE_CAST(FILTER_NAME, 6, filter_output_type);
 
 		/*this line might have to go to the other block depending on filter size(even/uneven), the */
-		FILTER_LAST_LINE_MEM_SAVE_EVEN(FILTER_NAME, 8);
+		FILTER_LAST_LINE_MEM_SAVE_EVEN_CAST(FILTER_NAME, 8, filter_output_type);
 
-	    return ((filter_output_type *)(&retval))[0];
+	    return FILTER_RETURN_MEM_SAVE_CAST(filter_output_type);
 	}else{
 
-		FILTER_LINE_MEM_SAVE_STATIONARY(FILTER_NAME, 1);
-		FILTER_LINE_MEM_SAVE_STATIONARY(FILTER_NAME, 3);
-		FILTER_LINE_MEM_SAVE_STATIONARY(FILTER_NAME, 5);
-		FILTER_LINE_MEM_SAVE_STATIONARY(FILTER_NAME, 7);
+		FILTER_LINE_MEM_SAVE_STATIONARY_CAST(FILTER_NAME, 1, filter_output_type);
+		FILTER_LINE_MEM_SAVE_STATIONARY_CAST(FILTER_NAME, 3, filter_output_type);
+		FILTER_LINE_MEM_SAVE_STATIONARY_CAST(FILTER_NAME, 5, filter_output_type);
+		FILTER_LINE_MEM_SAVE_STATIONARY_CAST(FILTER_NAME, 7, filter_output_type);
 	    return 0;
 	}
 
