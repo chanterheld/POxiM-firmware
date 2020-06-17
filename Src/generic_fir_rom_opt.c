@@ -12,7 +12,7 @@
 #define filter_input_type		int32_t
 #define filter_output_type		int32_t
 
-filter_output_type generic_fir_rom_opt_fir_filter_advance(filter_input_type input, char output_cycle, uint32_t *filter_memory, uint32_t *filter_coeff, uint8_t filter_order){
+filter_output_type generic_fir_rom_opt_advance(filter_input_type input, char output_cycle, uint32_t *filter_memory, uint32_t *filter_coeff, uint8_t filter_order){
 
 	if(output_cycle == 1){
 
