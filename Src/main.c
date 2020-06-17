@@ -7,14 +7,6 @@
 /*
  * filter headers:
  */
-int16_t stage1_fir_filter_advance(int8_t input, char output_cycle);
-int32_t stage2_fir_filter_advance(int16_t input, char output_cycle);
-
-int32_t stage3_fir_filter_advance(int32_t input, char output_cycle, int32_t *_filter_memory);
-int32_t stage4_fir_filter_advance(int32_t input, char output_cycle, int32_t *_filter_memory);
-
-uint32_t generic_fir_rom_opt_advance(uint32_t input, char output_cycle, uint32_t *filter_memory, uint32_t *filter_coeff, uint8_t filter_order);
-
 
 /*
  * This value needs to be between 2500 - (nr of adc clock cycles) and (255 * max adc multiplication factor for feedback)
@@ -29,79 +21,6 @@ void Timer2_configuration(void);
 void ADC1_configuration(void);
 
 #define databuffer_type long
-
-volatile bool databuffer_overflow = 0;
-volatile long data_buffer[20];
-const char databuffer_size = sizeof(data_buffer)/sizeof(data_buffer[0]);
-volatile char databuffer_write_index = 0;
-volatile char databuffer_read_index = 0;
-
-databuffer_type databuffer_get_new_data(void){
-	if(databuffer_overflow){
-		disableInterrupts();
-		while(1){
-			//overflow of data buffer, halt;
-		}
-	}
-
-	while(databuffer_read_index == databuffer_write_index){
-	}
-	databuffer_type retval =  data_buffer[databuffer_read_index];
-
-	if((databuffer_read_index + 1) == databuffer_size){
-		databuffer_read_index = 0;
-	}else{
-		databuffer_read_index++;
-	}
-
-	return retval;
-}
-
-void databuffer_write_new_data(databuffer_type input){
-	//check for overflow condition
-	if(databuffer_read_index == (databuffer_write_index + 1)){
-		databuffer_overflow = 1;
-		return;
-	}
-	data_buffer[databuffer_write_index] = input;
-
-	if((databuffer_write_index + 1) == databuffer_size){
-		databuffer_write_index = 0;
-	}else{
-		databuffer_write_index++;
-	}
-
-	return;
-}
-
-volatile uint32_t input = 0;
-volatile uint32_t output = 0;
-
-#define STAGE3_ORDER	6
-#define STAGE4_ORDER	8
-#define STAGE5_ORDER	12
-#define STAGE6_ORDER	18
-#define STAGE7_ORDER	36
-
-//static const int32_t stage4_coeff[STAGE4_ORDER + 1] = {-21671168, -57446912, 86228736, 515199488, 786390528, 515199488, 86228736, -57446912, -21671168};
-static const int32_t stage5_coeff[STAGE5_ORDER + 1] = {4534784, 10265344, -26586880, -84064768, 65555456, 500018688, 765431552, 500018688, 65555456, -84064768, -26586880, 10265344, 4534784};
-static const int32_t stage6_coeff[STAGE6_ORDER + 1] = {-560384, -2084096, 1233920, 15193088, 11409408, -49801472, -85861120, 95791104, 472342016, 678930944, 472342016, 95791104, -85861120, -49801472, 11409408, 15193088, 1233920, -2084096, -560384};
-static const int32_t stage7_coeff[STAGE7_ORDER + 1] = {5120, 53504, 110336, -148992, -819968, -543232, 2222336, 4315392, -1463808, -12609280, -9195520, 19376640, 38183424, -4659968, -83977472, -71265280, 128718848, 417668352, 556807936, 417668352, 128718848, -71265280, -83977472, -4659968, 38183424, 19376640, -9195520, -12609280, -1463808, 4315392, 2222336, -543232, -819968, -148992, 110336, 53504, 5120};
-
-FILTER_MEMORY_MEM_SAVE(stage3_ir, uint32_t, STAGE3_ORDER);
-FILTER_MEMORY_MEM_SAVE(stage3_r, uint32_t, STAGE3_ORDER);
-
-FILTER_MEMORY_MEM_SAVE(stage4_ir, uint32_t, STAGE4_ORDER);
-FILTER_MEMORY_MEM_SAVE(stage4_r, uint32_t, STAGE4_ORDER);
-
-FILTER_MEMORY_MEM_SAVE(stage5_ir, uint32_t, STAGE5_ORDER);
-FILTER_MEMORY_MEM_SAVE(stage5_r, uint32_t, STAGE5_ORDER);
-
-FILTER_MEMORY_MEM_SAVE(stage6_ir, uint32_t, STAGE6_ORDER);
-FILTER_MEMORY_MEM_SAVE(stage6_r, uint32_t, STAGE6_ORDER);
-
-FILTER_MEMORY_MEM_SAVE(stage7_ir, uint32_t, STAGE7_ORDER);
-FILTER_MEMORY_MEM_SAVE(stage7_r, uint32_t, STAGE7_ORDER);
 
 void main(void)
 {
