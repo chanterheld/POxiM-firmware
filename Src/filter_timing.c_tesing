@@ -1,0 +1,212 @@
+/*
+ * filter_timing.c
+ *
+ *  Created on: Jun 17, 2020
+ *      Author: daandegroot
+ */
+
+
+/*
+ * this code is best copy and pasted to main.c for testing
+ * Main still contains the inizialisation of filter memory and coefficient tables
+ * This is kept this way since main will hold all the filters in the final implementation
+ */
+void main_filter_testing(void)
+{
+
+	/*dunno how overdone this is but should make sure it runs at 16Mhz*/
+	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
+
+	GPIO_Init(GPIOD, GPIO_PIN_2, GPIO_MODE_OUT_PP_HIGH_FAST);
+	GPIO_Init(GPIOD, GPIO_PIN_3, GPIO_MODE_OUT_PP_HIGH_FAST);
+	GPIO_Init(GPIOD, GPIO_PIN_4, GPIO_MODE_OUT_PP_HIGH_FAST);
+	GPIO_Init(GPIOD, GPIO_PIN_5, GPIO_MODE_OUT_PP_HIGH_FAST);
+	GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_OUT_PP_HIGH_FAST);
+
+
+	uint8_t stage1_gate = 0;
+	uint8_t stage2_gate = 0;
+	uint8_t stage3_gate = 0;
+	uint8_t stage4_gate = 0;
+	uint8_t stage5_gate = 0;
+	uint8_t stage6_gate = 0;
+	uint8_t stage7_gate = 0;
+
+	uint8_t stage1_out = 0;
+	uint8_t stage2_out = 0;
+
+	uint32_t stage3_r_out = 0;
+	uint32_t stage3_ir_out = 0;
+
+	uint32_t stage4_r_out = 0;
+	uint32_t stage4_ir_out = 0;
+
+	uint32_t stage5_r_out = 0;
+	uint32_t stage5_ir_out = 0;
+
+	uint32_t stage6_r_out = 0;
+	uint32_t stage6_ir_out = 0;
+
+	uint32_t stage7_r_out = 0;
+	uint32_t stage7_ir_out = 0;
+
+	uint32_t stage8_r_out = 0;
+	uint32_t stage8_ir_out = 0;
+
+	while (1)
+	{
+
+
+#if 1
+		stage1_out = stage1_fir_filter_advance(input, stage1_gate);
+
+		stage1_gate ^= 0x1;
+		if(stage1_gate == 1){
+			continue;
+		}
+
+
+		stage2_out = stage2_fir_filter_advance(stage1_out, stage2_gate);
+
+		stage2_gate ^= 0x1;
+		if(stage2_gate == 1){
+			continue;
+		}
+
+		stage3_r_out = stage3_fir_filter_advance(stage2_out, stage3_gate, stage3_r_filter_memory);
+		stage3_ir_out = stage3_fir_filter_advance(stage2_out, stage3_gate, stage3_ir_filter_memory);
+
+		stage3_gate ^= 0x1;
+		if(stage3_gate == 1){
+			continue;
+		}
+
+		stage4_r_out = stage4_fir_filter_advance(stage3_r_out, stage4_gate, stage4_r_filter_memory);
+		stage4_ir_out = stage4_fir_filter_advance(stage3_ir_out, stage4_gate, stage4_ir_filter_memory);
+
+		stage4_gate ^= 0x1;
+		if(stage4_gate == 1){
+			continue;
+		}
+
+		stage5_r_out = generic_fir_rom_opt_advance(stage4_r_out, stage5_gate, stage5_r_filter_memory, stage5_coeff, STAGE5_ORDER);
+		stage5_ir_out = generic_fir_rom_opt_advance(stage4_ir_out, stage5_gate, stage5_ir_filter_memory, stage5_coeff, STAGE5_ORDER);
+
+		stage5_gate ^= 0x1;
+		if(stage5_gate == 1){
+			continue;
+		}
+
+
+		stage6_r_out = generic_fir_rom_opt_advance(stage5_r_out, stage6_gate, stage6_r_filter_memory, stage6_coeff, STAGE6_ORDER);
+		stage6_ir_out = generic_fir_rom_opt_advance(stage5_ir_out, stage6_gate, stage6_ir_filter_memory, stage6_coeff, STAGE6_ORDER);
+
+		stage6_gate ^= 0x1;
+		if(stage6_gate == 1){
+			continue;
+		}
+
+
+		stage7_r_out = generic_fir_rom_opt_advance(stage6_r_out, stage7_gate, stage7_r_filter_memory, stage7_coeff, STAGE7_ORDER);
+		stage7_ir_out = generic_fir_rom_opt_advance(stage6_ir_out, stage7_gate, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
+
+		stage7_gate ^= 0x1;
+		if(stage7_gate == 1){
+			continue;
+		}
+
+		GPIO_WriteReverse(GPIOD, GPIO_PIN_2);
+
+
+#else
+		for(uint16_t volatile i = 0; i < 500; i++){
+			output = stage3_fir_filter_advance(input, 0, stage3_ir_filter_memory);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_6);
+
+			output = stage3_fir_filter_advance(input, 1, stage3_ir_filter_memory);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_6);
+
+			output = stage3_fir_filter_advance(input, 0, stage3_r_filter_memory);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_6);
+
+			output = stage3_fir_filter_advance(input, 1, stage3_r_filter_memory);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_6);
+		}
+
+		for(uint16_t volatile i = 0; i < 500; i++){
+			output = stage4_fir_filter_advance(input, 0, stage4_ir_filter_memory);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_4);
+
+			output = stage4_fir_filter_advance(input, 1, stage4_ir_filter_memory);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_4);
+
+			output = stage4_fir_filter_advance(input, 0, stage4_r_filter_memory);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_4);
+
+			output = stage4_fir_filter_advance(input, 1, stage4_r_filter_memory);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_4);
+		}
+
+//		for(uint16_t volatile i = 0; i < 500; i++){
+//			output = stage4_ir_fir_filter_advance(input, 0);
+//			GPIO_WriteHigh(GPIOD, GPIO_PIN_4);
+//
+//			output = stage4_ir_fir_filter_advance(input, 1);
+//			GPIO_WriteLow(GPIOD, GPIO_PIN_4);
+//
+//			output = stage4_ir_fir_filter_advance(input, 0);
+//			GPIO_WriteHigh(GPIOD, GPIO_PIN_4);
+//
+//			output = stage4_ir_fir_filter_advance(input, 1);
+//			GPIO_WriteLow(GPIOD, GPIO_PIN_4);
+//		}
+
+		for(uint16_t volatile i = 0; i < 500; i++){
+			output = generic_fir_rom_opt_advance(input, 0, stage5_ir_filter_memory, stage5_coeff, STAGE5_ORDER);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_2);
+
+			output = generic_fir_rom_opt_advance(input, 1, stage5_ir_filter_memory, stage5_coeff, STAGE5_ORDER);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_2);
+
+			output = generic_fir_rom_opt_advance(input, 0, stage5_r_filter_memory, stage5_coeff, STAGE5_ORDER);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_2);
+
+			output = generic_fir_rom_opt_advance(input, 1, stage5_r_filter_memory, stage5_coeff, STAGE5_ORDER);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_2);
+		}
+
+
+		for(uint16_t volatile i = 0; i < 500; i++){
+			output = generic_fir_rom_opt_advance(input, 0, stage6_ir_filter_memory, stage6_coeff, STAGE6_ORDER);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_3);
+
+			output = generic_fir_rom_opt_advance(input, 1, stage6_ir_filter_memory, stage6_coeff, STAGE6_ORDER);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_3);
+
+			output = generic_fir_rom_opt_advance(input, 0, stage6_r_filter_memory, stage6_coeff, STAGE6_ORDER);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_3);
+
+			output = generic_fir_rom_opt_advance(input, 1, stage6_r_filter_memory, stage6_coeff, STAGE6_ORDER);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_3);
+		}
+
+
+
+		for(uint16_t volatile i = 0; i < 500; i++){
+			output = generic_fir_rom_opt_advance(input, 0, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_5);
+
+			output = generic_fir_rom_opt_advance(input, 1, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_5);
+
+			output = generic_fir_rom_opt_advance(input, 0, stage7_r_filter_memory, stage7_coeff, STAGE7_ORDER);
+			GPIO_WriteHigh(GPIOD, GPIO_PIN_5);
+
+			output = generic_fir_rom_opt_advance(input, 1, stage7_r_filter_memory, stage7_coeff, STAGE7_ORDER);
+			GPIO_WriteLow(GPIOD, GPIO_PIN_5);
+		}
+
+#endif
+
+	}
+}

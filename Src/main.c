@@ -1,7 +1,7 @@
 #include "stm8s.h"
 #include "stm8s_it.h"
 
-
+#include "filters.h"
 
 
 /*
@@ -10,23 +10,11 @@
 int16_t stage1_fir_filter_advance(int8_t input, char output_cycle);
 int32_t stage2_fir_filter_advance(int16_t input, char output_cycle);
 
-int32_t stage3_r_fir_filter_advance(int32_t input, char output_cycle);
-int32_t stage3_ir_fir_filter_advance(int32_t input, char output_cycle);
+int32_t stage3_fir_filter_advance(int32_t input, char output_cycle, int32_t *_filter_memory);
+int32_t stage4_fir_filter_advance(int32_t input, char output_cycle, int32_t *_filter_memory);
 
-int32_t stage4_r_fir_filter_advance(int32_t input, char output_cycle);
-int32_t stage4_ir_fir_filter_advance(int32_t input, char output_cycle);
+uint32_t generic_fir_rom_opt_advance(uint32_t input, char output_cycle, uint32_t *filter_memory, uint32_t *filter_coeff, uint8_t filter_order);
 
-int32_t stage5_r_fir_filter_advance(int32_t input, char output_cycle);
-int32_t stage5_ir_fir_filter_advance(int32_t input, char output_cycle);
-
-int32_t stage6_r_fir_filter_advance(int32_t input, char output_cycle);
-int32_t stage6_ir_fir_filter_advance(int32_t input, char output_cycle);
-
-int32_t stage7_r_fir_filter_advance(int32_t input, char output_cycle);
-int32_t stage7_ir_fir_filter_advance(int32_t input, char output_cycle);
-
-int32_t stage8_r_fir_filter_advance(int32_t input);
-int32_t stage8_ir_fir_filter_advance(int32_t input);
 
 /*
  * This value needs to be between 2500 - (nr of adc clock cycles) and (255 * max adc multiplication factor for feedback)
@@ -39,7 +27,6 @@ int32_t stage8_ir_fir_filter_advance(int32_t input);
 void Timer1_configuration(void);
 void Timer2_configuration(void);
 void ADC1_configuration(void);
-
 
 #define databuffer_type long
 
@@ -87,15 +74,40 @@ void databuffer_write_new_data(databuffer_type input){
 	return;
 }
 
+volatile uint32_t input = 0;
+volatile uint32_t output = 0;
+
+#define STAGE3_ORDER	6
+#define STAGE4_ORDER	8
+#define STAGE5_ORDER	12
+#define STAGE6_ORDER	18
+#define STAGE7_ORDER	36
+
+//static const int32_t stage4_coeff[STAGE4_ORDER + 1] = {-21671168, -57446912, 86228736, 515199488, 786390528, 515199488, 86228736, -57446912, -21671168};
+static const int32_t stage5_coeff[STAGE5_ORDER + 1] = {4534784, 10265344, -26586880, -84064768, 65555456, 500018688, 765431552, 500018688, 65555456, -84064768, -26586880, 10265344, 4534784};
+static const int32_t stage6_coeff[STAGE6_ORDER + 1] = {-560384, -2084096, 1233920, 15193088, 11409408, -49801472, -85861120, 95791104, 472342016, 678930944, 472342016, 95791104, -85861120, -49801472, 11409408, 15193088, 1233920, -2084096, -560384};
+static const int32_t stage7_coeff[STAGE7_ORDER + 1] = {5120, 53504, 110336, -148992, -819968, -543232, 2222336, 4315392, -1463808, -12609280, -9195520, 19376640, 38183424, -4659968, -83977472, -71265280, 128718848, 417668352, 556807936, 417668352, 128718848, -71265280, -83977472, -4659968, 38183424, 19376640, -9195520, -12609280, -1463808, 4315392, 2222336, -543232, -819968, -148992, 110336, 53504, 5120};
+
+FILTER_MEMORY_MEM_SAVE(stage3_ir, uint32_t, STAGE3_ORDER);
+FILTER_MEMORY_MEM_SAVE(stage3_r, uint32_t, STAGE3_ORDER);
+
+FILTER_MEMORY_MEM_SAVE(stage4_ir, uint32_t, STAGE4_ORDER);
+FILTER_MEMORY_MEM_SAVE(stage4_r, uint32_t, STAGE4_ORDER);
+
+FILTER_MEMORY_MEM_SAVE(stage5_ir, uint32_t, STAGE5_ORDER);
+FILTER_MEMORY_MEM_SAVE(stage5_r, uint32_t, STAGE5_ORDER);
+
+FILTER_MEMORY_MEM_SAVE(stage6_ir, uint32_t, STAGE6_ORDER);
+FILTER_MEMORY_MEM_SAVE(stage6_r, uint32_t, STAGE6_ORDER);
+
+FILTER_MEMORY_MEM_SAVE(stage7_ir, uint32_t, STAGE7_ORDER);
+FILTER_MEMORY_MEM_SAVE(stage7_r, uint32_t, STAGE7_ORDER);
 
 void main(void)
 {
 
 	/*dunno how overdone this is but should make sure it runs at 16Mhz*/
 	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
-	CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);
-	CLK_HSIPrescalerConfig(CLK_PRESCALER_CPUDIV1);
-
 
 	/**
 	 * set both commons to highZ to disable leds:
@@ -117,7 +129,6 @@ void main(void)
 	/* not sure if needed but set adc input pin to floating input*/
 	GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
 
-
 	UART1_DeInit();
 	UART1_Init((uint32_t)256000, UART1_WORDLENGTH_8D, UART1_STOPBITS_1, UART1_PARITY_NO,
 			UART1_SYNCMODE_CLOCK_DISABLE, UART1_MODE_TX_ENABLE);
@@ -135,104 +146,8 @@ void main(void)
 	/* Enable timer 1*/
 	TIM1_Cmd(ENABLE);
 
-	volatile int8_t input = 123;
-
-//	GPIO_Init(GPIOD, GPIO_PIN_2, GPIO_MODE_OUT_PP_HIGH_FAST);
-//	GPIO_WriteHigh(GPIOD, GPIO_PIN_2);
-
-//	uint8_t stage1_gate = 0;
-//	uint8_t stage2_gate = 0;
-//	uint8_t stage3_gate = 0;
-//	uint8_t stage4_gate = 0;
-//	uint8_t stage5_gate = 0;
-//	uint8_t stage6_gate = 0;
-//	uint8_t stage7_gate = 0;
-//
-//	uint8_t stage1_out = 0;
-//	uint8_t stage2_out = 0;
-//
-//	uint32_t stage3_r_out = 0;
-//	uint32_t stage3_ir_out = 0;
-//
-//	uint32_t stage4_r_out = 0;
-//	uint32_t stage4_ir_out = 0;
-//
-//	uint32_t stage5_r_out = 0;
-//	uint32_t stage5_ir_out = 0;
-//
-//	uint32_t stage6_r_out = 0;
-//	uint32_t stage6_ir_out = 0;
-//
-//	uint32_t stage7_r_out = 0;
-//	uint32_t stage7_ir_out = 0;
-//
-//	uint32_t stage8_r_out = 0;
-//	uint32_t stage8_ir_out = 0;
-
 	while (1)
 	{
-
-//		stage1_out = stage1_fir_filter_advance(input, stage1_gate);
-//
-//		stage1_gate ^= 0x1;
-//		if(stage1_gate == 1){
-//			continue;
-//		}
-//
-//
-//		stage2_out = stage2_fir_filter_advance(stage1_out, stage2_gate);
-//
-//		stage2_gate ^= 0x1;
-//		if(stage2_gate == 1){
-//			continue;
-//		}
-//
-//		stage3_r_out = stage3_r_fir_filter_advance(stage2_out, stage3_gate);
-//		stage3_ir_out = stage3_ir_fir_filter_advance(stage2_out, stage3_gate);
-
-//		stage3_gate ^= 0x1;
-//		if(stage3_gate == 1){
-//			continue;
-//		}
-//
-//		stage4_r_out = stage4_r_fir_filter_advance(stage3_r_out, stage4_gate);
-//		stage4_ir_out = stage4_ir_fir_filter_advance(stage3_ir_out, stage4_gate);
-//
-//		stage4_gate ^= 0x1;
-//		if(stage4_gate == 1){
-//			continue;
-//		}
-//
-//		stage5_r_out = stage5_r_fir_filter_advance(stage4_r_out, stage5_gate);
-//		stage5_ir_out = stage5_ir_fir_filter_advance(stage4_ir_out, stage5_gate);
-//
-//		stage5_gate ^= 0x1;
-//		if(stage5_gate == 1){
-//			continue;
-//		}
-//
-//		stage6_r_out = stage6_r_fir_filter_advance(stage5_r_out, stage6_gate);
-//		stage6_ir_out = stage6_ir_fir_filter_advance(stage5_ir_out, stage6_gate);
-//
-//		stage3_gate ^= 0x1;
-//		if(stage3_gate == 1){
-//			continue;
-//		}
-//
-//		stage7_r_out = stage3_r_fir_filter_advance(stage6_r_out, stage7_gate);
-//		stage7_ir_out = stage3_ir_fir_filter_advance(stage6_ir_out, stage7_gate);
-//
-//		stage7_gate ^= 0x1;
-//		if(stage7_gate == 1){
-//			continue;
-//		}
-//
-//
-//		stage8_r_out = stage8_r_fir_filter_advance(stage7_r_out);
-//		stage8_ir_out = stage8_ir_fir_filter_advance(stage7_ir_out);
-
-
-//		GPIO_WriteReverse(GPIOD, GPIO_PIN_2);
 
 	}
 
@@ -449,8 +364,4 @@ INTERRUPT_HANDLER(TIM2_UPD_OVF_BRK_IRQHandler, ITC_IRQ_TIM2_OVF)
 	TIM2_ClearITPendingBit(TIM2_IT_UPDATE);
 
 }
-
-
-
-
 
