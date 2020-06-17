@@ -266,7 +266,16 @@ INTERRUPT_HANDLER(TIM1_UPD_OVF_TRG_BRK_IRQHandler, ITC_IRQ_TIM1_OVF)
 }
 
 
+#define STAGE1_GATE								(0x00U)
+#define STAGE2_GATE								(0x01U)
 
+#define GET_STAGE_GATE_BIT(state, index)		((state >> index) & 0x1U)
+#define TOGGLE_STAGE_GATE_BIT(state, index)		(state ^= (1U << index))
+
+#define STAGE1_GATE_BIT(state)					((state >> 0) & 0x1U)
+#define STAGE2_GATE_BIT(state)					((state >> 1) & 0x1U)
+
+volatile uint8_t int_gate_state = 0;
 
 /**
  *  ADC end of conversion interrupt
@@ -282,7 +291,7 @@ INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
 	ADC1_ClearITPendingBit(ADC1_IT_EOC);
 
 	//extract adc value
-	unsigned char adc_val = ADC1->DRH;
+	int8_t adc_val = ADC1->DRH;
 
 	//set time 2 to create pulse of size (adc_val * 8)
 	TIM2_SetCompare1(TIM2_RELOAD_VALUE - (adc_val * 8) + 1);
@@ -296,6 +305,27 @@ INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
 	/**
 	 * at this point further calculations will take place
 	 */
+
+	//toggle
+	TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE);
+	if(GET_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE)){
+		(void)stage1_fir_filter_advance(adc_val, 0);
+		return;
+	}
+
+	int16_t stage1_out = stage1_fir_filter_advance(adc_val, 1);
+
+
+	//toggle
+	TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE2_GATE);
+	if(GET_STAGE_GATE_BIT(int_gate_state, STAGE2_GATE)){
+		(void)stage2_fir_filter_advance(stage1_out, 0);
+		return;
+	}
+
+	int32_t stage2_out = stage2_fir_filter_advance(stage1_out, 1);
+	databuffer_write_new_data(stage2_out);
+	return;
 }
 
 /**
