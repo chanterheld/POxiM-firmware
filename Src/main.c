@@ -2,7 +2,7 @@
 #include "stm8s_it.h"
 
 #include "filters.h"
-
+#include "data_buffer.h"
 
 /*
  * filter headers:
@@ -27,52 +27,6 @@ uint32_t generic_fir_rom_opt_advance(uint32_t input, char output_cycle, uint32_t
 void Timer1_configuration(void);
 void Timer2_configuration(void);
 void ADC1_configuration(void);
-
-#define databuffer_type long
-
-volatile bool databuffer_overflow = 0;
-volatile long data_buffer[20];
-const char databuffer_size = sizeof(data_buffer)/sizeof(data_buffer[0]);
-volatile char databuffer_write_index = 0;
-volatile char databuffer_read_index = 0;
-
-databuffer_type databuffer_get_new_data(void){
-	if(databuffer_overflow){
-		disableInterrupts();
-		while(1){
-			//overflow of data buffer, halt;
-		}
-	}
-
-	while(databuffer_read_index == databuffer_write_index){
-	}
-	databuffer_type retval =  data_buffer[databuffer_read_index];
-
-	if((databuffer_read_index + 1) == databuffer_size){
-		databuffer_read_index = 0;
-	}else{
-		databuffer_read_index++;
-	}
-
-	return retval;
-}
-
-void databuffer_write_new_data(databuffer_type input){
-	//check for overflow condition
-	if(databuffer_read_index == (databuffer_write_index + 1)){
-		databuffer_overflow = 1;
-		return;
-	}
-	data_buffer[databuffer_write_index] = input;
-
-	if((databuffer_write_index + 1) == databuffer_size){
-		databuffer_write_index = 0;
-	}else{
-		databuffer_write_index++;
-	}
-
-	return;
-}
 
 volatile uint32_t input = 0;
 volatile uint32_t output = 0;
@@ -152,9 +106,6 @@ void main(void)
 	}
 
 }
-
-
-
 
 
 /**
