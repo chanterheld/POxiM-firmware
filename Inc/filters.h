@@ -19,6 +19,8 @@ typedef   signed long long     int64_t;
 
 #define FIR_FILTER_ADVANCE(name, type_in, type_out)			type_out CONCAT(name, _fir_filter_advance)(type_in input)
 #define DEC_FIR_FILTER_ADVANCE(name, type_in, type_out)   	type_out CONCAT(name, _fir_filter_advance)(type_in input, char output_cycle)
+#define DEC_FIR_FILTER_ADVANCE_MEM_IN(name, type_in, type_out)   	type_out CONCAT(name, _fir_filter_advance)(type_in input, char output_cycle, type_out *_filter_memory)
+
 
 #define FILTER_MEMORY(name, type, size)						volatile type CONCAT(name,_filter_memory)[size] = {0}
 
