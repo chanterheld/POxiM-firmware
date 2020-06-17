@@ -59,15 +59,33 @@ void main(void)
 //	/* not sure if needed but set adc input pin to floating input*/
 //	GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
 //
-//	UART1_DeInit();
-//	UART1_Init((uint32_t)256000, UART1_WORDLENGTH_8D, UART1_STOPBITS_1, UART1_PARITY_NO,
-//			UART1_SYNCMODE_CLOCK_DISABLE, UART1_MODE_TX_ENABLE);
-//
-//
+
+
+	/* UART1 SETUP: */
+			  /* Clear the Idle Line Detected bit in the status register by a read
+			  to the UART1_SR register followed by a Read to the UART1_DR register */
+		//	  (void)UART1->SR;
+		//	  (void)UART1->DR;
+		//
+		//	  UART1->BRR2 = (0x0E);
+		//	  UART1->BRR1 = (0x03);
+		//
+		//	  UART1->CR1 = UART1_CR1_RESET_VALUE;  /* Set UART1_CR1 to reset value 0x00: 8 bit no parity*/
+		//	  UART1->CR2 = UART1_CR2_RESET_VALUE;  /* Set UART1_CR2 to reset value 0x00 */
+		//	  UART1->CR3 = UART1_CR3_RESET_VALUE;  /* Set UART1_CR3 to reset value 0x00 */
+		//	  UART1->CR4 = UART1_CR4_RESET_VALUE;  /* Set UART1_CR4 to reset value 0x00 */
+		//	  UART1->CR5 = UART1_CR5_RESET_VALUE;  /* Set UART1_CR5 to reset value 0x00 */
+		//
+		//	  UART1->GTR = UART1_GTR_RESET_VALUE;
+		//	  UART1->PSCR = UART1_PSCR_RESET_VALUE;
+		//
+		//	  UART1->CR2 |= (uint8_t)UART1_CR2_TEN;
+
+
 //	ADC1_configuration();
 //
 //	Timer1_configuration();
-//
+
 //	Timer2_configuration();
 //
 //	/* enable interrupts */
@@ -82,9 +100,6 @@ void main(void)
 	}
 
 }
-
-
-
 
 
 ///**
@@ -155,8 +170,8 @@ void main(void)
 //	 */
 //	TIM1_SelectOutputTrigger(TIM1_TRGOSOURCE_UPDATE);
 //}
-//
-//
+
+
 //void Timer2_configuration(void){
 //	/**
 //	 * set to default state
@@ -188,10 +203,10 @@ void main(void)
 //	//enable update event interrupts
 //	TIM2_ITConfig(TIM2_IT_UPDATE, ENABLE);
 //}
-//
-//
+
+
+
 //void ADC1_configuration(void){
-//	ADC1_DeInit();
 //
 //	/**
 //	 * single conversion
@@ -200,17 +215,26 @@ void main(void)
 //	 * disable schmitttrigger on channel 6 pin gpio
 //	 *
 //	 */
-//	ADC1_Init(ADC1_CONVERSIONMODE_SINGLE, ADC1_CHANNEL_6, ADC1_PRESSEL_FCPU_D8, ADC1_EXTTRIG_TIM, \
-//			ENABLE, ADC1_ALIGN_LEFT, ADC1_SCHMITTTRIG_CHANNEL6, DISABLE);
 //
-//	//enable end of conversion interrupt
-//	ADC1_ITConfig(ADC1_IT_EOCIE, ENABLE);
+//	ADC1->CSR  = (uint8_t)(ADC1_CHANNEL_6) | (uint8_t)ADC1_IT_EOCIE; // channel 6 + end of conversion interrupt
+//	ADC1->CR1  = (uint8_t)(ADC1_PRESSEL_FCPU_D8); // Continuous conversion + adc_clk = cpu_clk/8
+//	ADC1->CR2  = (uint8_t)(ADC1_CR2_EXTTRIG) | (uint8_t)(ADC1_EXTTRIG_TIM); //start conversion on timer trigger + left allign
+//	ADC1->CR3  = ADC1_CR3_RESET_VALUE;
+//	ADC1->TDRH = ADC1_TDRH_RESET_VALUE;
+//	ADC1->TDRL = (uint8_t)((uint8_t)0x01 << (uint8_t)ADC1_SCHMITTTRIG_CHANNEL6); // disable schmitt trigger on input
+//	ADC1->HTRH = ADC1_HTRH_RESET_VALUE;
+//	ADC1->HTRL = ADC1_HTRL_RESET_VALUE;
+//	ADC1->LTRH = ADC1_LTRH_RESET_VALUE;
+//	ADC1->LTRL = ADC1_LTRL_RESET_VALUE;
+//	ADC1->AWCRH = ADC1_AWCRH_RESET_VALUE;
+//	ADC1->AWCRL = ADC1_AWCRL_RESET_VALUE;
 //
-//	//enable ADC
-//	ADC1_Cmd(ENABLE);
+//	ADC1->CR1 |= ADC1_CR1_ADON; /*enable adc*/
 //
 //	//ADC1->DRH holds MSB data in left align mode
 //}
+
+
 //
 //#define LED_R_VALUE_FROM_MOD_TABLE(table_entry)			((uint8_t)((table_entry >> 4) & 0xf))
 //#define LED_IR_VALUE_FROM_MOD_TABLE(table_entry)		((uint8_t)(table_entry & 0xf))
