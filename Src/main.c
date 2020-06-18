@@ -57,6 +57,26 @@ FILTER_MEMORY_MEM_SAVE(stage6_r, uint32_t, STAGE6_ORDER);
 FILTER_MEMORY_MEM_SAVE(stage7_ir, uint32_t, STAGE7_ORDER);
 FILTER_MEMORY_MEM_SAVE(stage7_r, uint32_t, STAGE7_ORDER);
 
+/* gating filter function, implements decimation of frequency */
+#define STAGE1_GATE								(0x00U)
+#define STAGE2_GATE								(0x01U)
+
+#define STAGE3_GATE								(0x00U)
+#define STAGE4_GATE								(0x01U)
+#define STAGE5_GATE								(0x03U)
+#define STAGE6_GATE								(0x04U)
+#define STAGE7_GATE								(0x05U)
+#define STAGE8_GATE								(0x06U)
+
+#define GET_STAGE_GATE_BIT(state, index)		((state >> index) & 0x1U)
+#define TOGGLE_STAGE_GATE_BIT(state, index)		(state ^= (1U << index))
+
+#define STAGE1_GATE_BIT(state)					((state >> 0) & 0x1U)
+#define STAGE2_GATE_BIT(state)					((state >> 1) & 0x1U)
+
+volatile uint8_t int_gate_state = 0;
+uint8_t main_gate_state = 0;
+
 void main(void)
 {
 
@@ -100,8 +120,83 @@ void main(void)
 	/* Enable timer 1*/
 	TIM1_Cmd(ENABLE);
 
+	int32_t data_r, data_ir;
+
 	while (1)
 	{
+		data_r = databuffer_get_new_data();
+
+		/*
+		 * MIXING
+		 */
+		data_ir = data_r;
+		/******/
+
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE3_GATE);
+		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE3_GATE)){
+			(void)stage3_fir_filter_advance(data_r, 0, stage3_r_filter_memory);
+			(void)stage3_fir_filter_advance(data_ir, 0, stage3_ir_filter_memory);
+
+			continue;
+		}
+
+		data_r = stage3_fir_filter_advance(data_r, 1, stage3_r_filter_memory);
+		data_ir = stage3_fir_filter_advance(data_ir, 1, stage3_ir_filter_memory);
+
+
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE);
+		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE)){
+			(void)stage4_fir_filter_advance(data_r, 0, stage3_r_filter_memory);
+			(void)stage4_fir_filter_advance(data_ir, 0, stage3_ir_filter_memory);
+
+			continue;
+		}
+
+		data_r = stage4_fir_filter_advance(data_r, 1, stage4_r_filter_memory);
+		data_ir = stage4_fir_filter_advance(data_ir, 1, stage4_ir_filter_memory);
+
+
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE5_GATE);
+		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE5_GATE)){
+			(void)generic_fir_rom_opt_advance(data_r, 0, stage5_r_filter_memory, stage5_coeff, STAGE5_ORDER);
+			(void)generic_fir_rom_opt_advance(data_ir, 0, stage5_ir_filter_memory, stage5_coeff, STAGE5_ORDER);
+
+			continue;
+		}
+
+		data_r = generic_fir_rom_opt_advance(data_r, 1, stage5_r_filter_memory, stage5_coeff, STAGE5_ORDER);
+		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage5_ir_filter_memory, stage5_coeff, STAGE5_ORDER);
+
+
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE6_GATE);
+		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE6_GATE)){
+			(void)generic_fir_rom_opt_advance(data_r, 0, stage6_r_filter_memory, stage6_coeff, STAGE6_ORDER);
+			(void)generic_fir_rom_opt_advance(data_ir, 0, stage6_ir_filter_memory, stage6_coeff, STAGE6_ORDER);
+
+			continue;
+		}
+
+		data_r = generic_fir_rom_opt_advance(data_r, 1, stage6_r_filter_memory, stage6_coeff, STAGE6_ORDER);
+		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage6_ir_filter_memory, stage6_coeff, STAGE6_ORDER);
+
+
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE7_GATE);
+		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE7_GATE)){
+			(void)generic_fir_rom_opt_advance(data_r, 0, stage7_r_filter_memory, stage7_coeff, STAGE7_ORDER);
+			(void)generic_fir_rom_opt_advance(data_ir, 0, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
+
+			continue;
+		}
+
+		data_r = generic_fir_rom_opt_advance(data_r, 1, stage7_r_filter_memory, stage7_coeff, STAGE7_ORDER);
+		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
+
+
 
 	}
 
@@ -264,18 +359,6 @@ INTERRUPT_HANDLER(TIM1_UPD_OVF_TRG_BRK_IRQHandler, ITC_IRQ_TIM1_OVF)
 		led_mod_table_idx = 0;
 	}
 }
-
-
-#define STAGE1_GATE								(0x00U)
-#define STAGE2_GATE								(0x01U)
-
-#define GET_STAGE_GATE_BIT(state, index)		((state >> index) & 0x1U)
-#define TOGGLE_STAGE_GATE_BIT(state, index)		(state ^= (1U << index))
-
-#define STAGE1_GATE_BIT(state)					((state >> 0) & 0x1U)
-#define STAGE2_GATE_BIT(state)					((state >> 1) & 0x1U)
-
-volatile uint8_t int_gate_state = 0;
 
 /**
  *  ADC end of conversion interrupt
