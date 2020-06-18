@@ -9,7 +9,7 @@
 #include "stm8s_it.h"
 
 volatile bool databuffer_overflow = 0;
-volatile long data_buffer[20];
+volatile int32_t data_buffer[32];
 const char databuffer_size = sizeof(data_buffer)/sizeof(data_buffer[0]);
 volatile char databuffer_write_index = 0;
 volatile char databuffer_read_index = 0;
