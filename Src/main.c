@@ -86,6 +86,12 @@ int32_t mixing_table_ir[] = {1,2,3,4,5,6};
 const uint8_t mixing_table_ir_size = sizeof(mixing_table_ir)/sizeof(mixing_table_ir[0]);
 uint8_t mixing_table_ir_index = 0;
 
+#define UART1_TX_RED_INDICATOR		(1U << 8)
+#define UART1_TX_IR_INDICATOR		(0U << 8)
+
+#define UART1_TX_NR_OF_BYTES		(8)
+int16_t uart_tx_reg[UART1_TX_NR_OF_BYTES] = {0};
+volatile uint8_t uart1_tx_index = 0;
 
 void main(void)
 {
@@ -114,9 +120,10 @@ void main(void)
 	GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
 
 	UART1_DeInit();
-	UART1_Init((uint32_t)256000, UART1_WORDLENGTH_8D, UART1_STOPBITS_1, UART1_PARITY_NO,
+	UART1_Init((uint32_t)256000, UART1_WORDLENGTH_9D, UART1_STOPBITS_1, UART1_PARITY_NO,
 			UART1_SYNCMODE_CLOCK_DISABLE, UART1_MODE_TX_ENABLE);
 
+	UART1_ITConfig(UART1_IT_TC, ENABLE);
 
 	ADC1_configuration();
 
@@ -220,7 +227,18 @@ void main(void)
 		data_r = generic_fir_rom_opt_advance(data_r, 1, stage7_r_filter_memory, stage7_coeff, STAGE7_ORDER);
 		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
 
+		uart_tx_reg[0] = ((int8_t)((data_r >> 24) & 0xff)) | UART1_TX_RED_INDICATOR;
+		uart_tx_reg[1] = ((int8_t)((data_r >> 16) & 0xff)) | UART1_TX_RED_INDICATOR;
+		uart_tx_reg[2] = ((int8_t)((data_r >> 8) & 0xff)) | UART1_TX_RED_INDICATOR;
+		uart_tx_reg[3] = ((int8_t)((data_r) & 0xff)) | UART1_TX_RED_INDICATOR;
 
+		uart_tx_reg[4] = ((int8_t)((data_ir >> 24) & 0xff)) | UART1_TX_IR_INDICATOR;
+		uart_tx_reg[5] = ((int8_t)((data_ir >> 16) & 0xff)) | UART1_TX_IR_INDICATOR;
+		uart_tx_reg[6] = ((int8_t)((data_ir >> 8) & 0xff)) | UART1_TX_IR_INDICATOR;
+		uart_tx_reg[7] = ((int8_t)((data_ir) & 0xff)) | UART1_TX_IR_INDICATOR;
+
+		uart1_tx_index = 0;
+		UART1_SendData9(uart_tx_reg[0]);
 
 	}
 
@@ -407,7 +425,7 @@ INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
 	TIM2_Cmd(ENABLE);
 
 	//send ADC value to UART
-	UART1->DR = adc_val;
+//	UART1->DR = adc_val;
 
 	/**
 	 * at this point further calculations will take place
@@ -453,3 +471,19 @@ INTERRUPT_HANDLER(TIM2_UPD_OVF_BRK_IRQHandler, ITC_IRQ_TIM2_OVF)
 
 }
 
+
+
+/**
+ * UART transfer complete
+ */
+INTERRUPT_HANDLER(UART1_TX_IRQHandler, ITC_IRQ_UART1_TX)
+{
+	UART1->SR &= ~(1U<<6U);
+
+	if(++uart1_tx_index == UART1_TX_NR_OF_BYTES){
+		return;
+	}
+
+	//UART1->DR = uart_tx_reg[uart1_tx_index];
+	UART1_SendData9(uart_tx_reg[uart1_tx_index]);
+}
