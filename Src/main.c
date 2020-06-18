@@ -77,6 +77,16 @@ FILTER_MEMORY_MEM_SAVE(stage7_r, uint32_t, STAGE7_ORDER);
 volatile uint8_t int_gate_state = 0;
 uint8_t main_gate_state = 0;
 
+
+int32_t mixing_table_r[] = {1,2,3,4,5,6};
+const uint8_t mixing_table_r_size = sizeof(mixing_table_r)/sizeof(mixing_table_r[0]);
+uint8_t mixing_table_r_index = 0;
+
+int32_t mixing_table_ir[] = {1,2,3,4,5,6};
+const uint8_t mixing_table_ir_size = sizeof(mixing_table_ir)/sizeof(mixing_table_ir[0]);
+uint8_t mixing_table_ir_index = 0;
+
+
 void main(void)
 {
 
@@ -129,7 +139,21 @@ void main(void)
 		/*
 		 * MIXING
 		 */
-		data_ir = data_r;
+		int64_t mix_tmp;
+		mix_tmp = data_r * mixing_table_ir[mixing_table_ir_index];
+		data_ir = ((int32_t *)(&mix_tmp))[0];
+
+		mix_tmp = data_r * mixing_table_r[mixing_table_r_index];
+		data_r = ((int32_t *)(&mix_tmp))[0];
+
+		//increment indexes
+		if(++mixing_table_r_index == mixing_table_r_size){
+			mixing_table_r_index = 0;
+		}
+		if(++mixing_table_ir_index == mixing_table_ir_size){
+			mixing_table_ir_index = 0;
+		}
+
 		/******/
 
 		//toggle
