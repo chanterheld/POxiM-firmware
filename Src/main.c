@@ -6,8 +6,9 @@
  * this is thus 2388 and 2040 (for 112 and 8 respectively)
  * Choosing this value higher makes more time for timer 2 interrupt to stop the timer after a cycle but less time for the ADC EOC interrupt to start timer 2
  *
+ * In an attempt to lower noise the timer will now run at 8 times speed and create 8 feedback pulses with the same total time high.
  */
-#define TIM2_RELOAD_VALUE		(2232)
+#define TIM2_RELOAD_VALUE		(292)
 
 void Timer1_configuration(void);
 void Timer2_configuration(void);
@@ -91,6 +92,10 @@ void main(void)
 	Timer1_configuration();
 
 	Timer2_configuration();
+
+	void ITC_SetSoftwarePriority(ITC_IRQ_TIM1_OVF, ITC_PRIORITYLEVEL_2);
+	void ITC_SetSoftwarePriority(ITC_IRQ_ADC1, ITC_PRIORITYLEVEL_1);
+	void ITC_SetSoftwarePriority(ITC_IRQ_TIM2_OVF, ITC_PRIORITYLEVEL_3);
 
 	/* enable interrupts */
 	enableInterrupts();
@@ -245,7 +250,7 @@ static const uint8_t led_mod_table[] = {16,17,17,17,17,17,17,17,17,17,17,17,17,1
 static const uint16_t led_mod_table_size = sizeof(led_mod_table)/sizeof(led_mod_table[0]);
 volatile uint16_t led_mod_table_idx = 0;
 
-
+volatile uint8_t feed_back_pulse_counter = 0;
 /**
  *  Timer 1 update event interrupt
  *
@@ -280,20 +285,23 @@ INTERRUPT_HANDLER(TIM1_UPD_OVF_TRG_BRK_IRQHandler, ITC_IRQ_TIM1_OVF)
  */
 INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
 {
-	//clear interrupt pending flag
-	ADC1_ClearITPendingBit(ADC1_IT_EOC);
-
 	//extract adc value
-	unsigned char adc_val = ADC1->DRH;
+	uint8_t adc_val = ADC1->DRH;
 
 	//set time 2 to create pulse of size (adc_val * 8)
-	TIM2_SetCompare1(TIM2_RELOAD_VALUE - (adc_val * 8) + 1);
+	// TIM2_SetCompare1(TIM2_RELOAD_VALUE - (adc_val * 8) + 1);
+	TIM2_SetCompare1(TIM2_RELOAD_VALUE + 1 - adc_val);
+
+	feed_back_pulse_counter = 0;
 
 	//enable timer 2
 	TIM2_Cmd(ENABLE);
 
 	//send ADC value to UART
 	UART1->DR = adc_val;
+
+	//clear interrupt pending flag
+	ADC1_ClearITPendingBit(ADC1_IT_EOC);
 
 	/**
 	 * at this point further calculations will take place
@@ -304,21 +312,22 @@ INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
  * Timer 2 update event interrupt
  *
  * Stop timer and force output low
+ *
+ * with the timer at 8 times speed, wait 8 cycles
  */
+
+
 INTERRUPT_HANDLER(TIM2_UPD_OVF_BRK_IRQHandler, ITC_IRQ_TIM2_OVF)
 {
-	//disable timer 2
-	TIM2_Cmd(DISABLE);
+	if(++feed_back_pulse_counter == 8){
+		//disable timer 2
+		TIM2_Cmd(DISABLE);
 
-	//set counter value to 0 to ensure the pwm output is low
-	TIM2_SetCounter(0);
+		//set counter value to 0 to ensure the pwm output is low
+		TIM2_SetCounter(0);
+	}
 
 	//clear interrupt pending flag
 	TIM2_ClearITPendingBit(TIM2_IT_UPDATE);
 
 }
-
-
-
-
-
