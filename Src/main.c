@@ -2,9 +2,11 @@
 #include "stm8s_it.h"
 #include "defines.h"
 
-void Initialize(void);
 #include "filters.h"
 #include "data_buffer.h"
+
+
+void Initialize(void);
 
 /*
  * filter headers:
@@ -39,7 +41,7 @@ volatile uint32_t output = 0;
 #define STAGE6_ORDER	18
 #define STAGE7_ORDER	36
 
-//static const int32_t stage4_coeff[STAGE4_ORDER + 1] = {-21671168, -57446912, 86228736, 515199488, 786390528, 515199488, 86228736, -57446912, -21671168};
+static const int32_t stage4_coeff[STAGE4_ORDER + 1] = {-21671168, -57446912, 86228736, 515199488, 786390528, 515199488, 86228736, -57446912, -21671168};
 static const int32_t stage5_coeff[STAGE5_ORDER + 1] = {4534784, 10265344, -26586880, -84064768, 65555456, 500018688, 765431552, 500018688, 65555456, -84064768, -26586880, 10265344, 4534784};
 static const int32_t stage6_coeff[STAGE6_ORDER + 1] = {-560384, -2084096, 1233920, 15193088, 11409408, -49801472, -85861120, 95791104, 472342016, 678930944, 472342016, 95791104, -85861120, -49801472, 11409408, 15193088, 1233920, -2084096, -560384};
 static const int32_t stage7_coeff[STAGE7_ORDER + 1] = {5120, 53504, 110336, -148992, -819968, -543232, 2222336, 4315392, -1463808, -12609280, -9195520, 19376640, 38183424, -4659968, -83977472, -71265280, 128718848, 417668352, 556807936, 417668352, 128718848, -71265280, -83977472, -4659968, 38183424, 19376640, -9195520, -12609280, -1463808, 4315392, 2222336, -543232, -819968, -148992, 110336, 53504, 5120};
@@ -170,17 +172,30 @@ void main(void)
 		data_ir = stage3_fir_filter_advance(data_ir, 1, stage3_ir_filter_memory);
 
 
+//		//toggle
+//		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE);
+//		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE)){
+//			(void)stage4_fir_filter_advance(data_r, 0, stage3_r_filter_memory);
+//			(void)stage4_fir_filter_advance(data_ir, 0, stage3_ir_filter_memory);
+//
+//			continue;
+//		}
+//
+//		data_r = stage4_fir_filter_advance(data_r, 1, stage4_r_filter_memory);
+//		data_ir = stage4_fir_filter_advance(data_ir, 1, stage4_ir_filter_memory);
+
+
 		//toggle
 		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE);
 		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE)){
-			(void)stage4_fir_filter_advance(data_r, 0, stage3_r_filter_memory);
-			(void)stage4_fir_filter_advance(data_ir, 0, stage3_ir_filter_memory);
+			(void)generic_fir_rom_opt_advance(data_r, 0, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
+			(void)generic_fir_rom_opt_advance(data_ir, 0, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
 
 			continue;
 		}
 
-		data_r = stage4_fir_filter_advance(data_r, 1, stage4_r_filter_memory);
-		data_ir = stage4_fir_filter_advance(data_ir, 1, stage4_ir_filter_memory);
+		data_r = generic_fir_rom_opt_advance(data_r, 1, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
+		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
 
 
 		//toggle
@@ -220,6 +235,9 @@ void main(void)
 
 		data_r = generic_fir_rom_opt_advance(data_r, 1, stage7_r_filter_memory, stage7_coeff, STAGE7_ORDER);
 		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
+
+
+
 
 		uart_tx_reg[0] = ((int8_t)((data_r >> 24) & 0xff)) | UART1_TX_RED_INDICATOR;
 		uart_tx_reg[1] = ((int8_t)((data_r >> 16) & 0xff)) | UART1_TX_RED_INDICATOR;
