@@ -42,7 +42,6 @@ void Initialize(void){
 	 * disable schmitttrigger on channel 6 pin gpio
 	 *
 	 */
-
 	ADC1->CSR  = (uint8_t)(ADC1_CHANNEL_6) | (uint8_t)ADC1_IT_EOCIE; // channel 6 + end of conversion interrupt
 	ADC1->CR1  = (uint8_t)(ADC1_PRESSEL_FCPU_D8); // Continuous conversion + adc_clk = cpu_clk/8
 	ADC1->CR2  = (uint8_t)(ADC1_CR2_EXTTRIG) | (uint8_t)(ADC1_EXTTRIG_TIM); //start conversion on timer trigger + left allign
@@ -64,15 +63,6 @@ void Initialize(void){
 
 
 	/*Timer1 Init */
-
-	/**
-	 * set to default state
-	 */
-	//TIM1_DeInit();
-
-	/////////////////////
-
-
 	  TIM1->CR1  = TIM1_CR1_RESET_VALUE;	//edge-allign upcounting mode
 	  TIM1->CR2  = (uint8_t)TIM1_TRGOSOURCE_UPDATE;
 	  TIM1->SMCR = TIM1_SMCR_RESET_VALUE;
@@ -119,100 +109,35 @@ void Initialize(void){
 	  TIM1->RCR   = TIM1_RCR_RESET_VALUE;
 	  TIM1->SR1   = TIM1_SR1_RESET_VALUE;
 
-//	/////////////////////
-//
-//	/**
-//	 * timer1:
-//	 * prescaler 1;
-//	 * upcounting;
-//	 * period 2500 (6.4Khz@16Mhz clock);
-//	 * repetion counter 0)
-//	 */
-//	TIM1_TimeBaseInit(0, TIM1_COUNTERMODE_UP,  2500,  0);
-//
-//
-//	/**
-//	 * timer 1 channel 3 settings:
-//	 * 			channel 4 has no inverse output
-//	 *
-//	 * pwm2: cnt < ccr => inactive
-//	 * enable normal output
-//	 * disable inverted output
-//	 * set ccr register 0
-//	 * normal output => active high
-//	 * inverted output => active high
-//	 * idle state low (only relevant for dead time insertion)
-//	 * idle state low (only relevant for dead time insertion)
-//	 */
-//
-//	/**
-//	 * timer 1 channel 3 settings: led IR
-//	 */
-//	TIM1_OC3Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, TIM1_OUTPUTNSTATE_DISABLE, 3000, \
-//			TIM1_OCPOLARITY_HIGH, TIM1_OCNPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET, TIM1_OCNIDLESTATE_RESET);
-//
-//	/**
-//	 * timer 1 channel 4 settings: led R
-//	 */
-//	TIM1_OC4Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, 3000, \
-//			TIM1_OCPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET);
-//
-//
-//	/**
-//	 * enable preload voor ccr 3,4
-//	 * needed since this registers will be written to while the timer is running
-//	 */
-//	TIM1_OC3PreloadConfig(ENABLE);
-//	TIM1_OC4PreloadConfig(ENABLE);
-//
-//
-//	/*
-//	 * enable interrupt to update led modulation ccr registers
-//	 */
-//	TIM1_ITConfig(TIM1_IT_UPDATE, ENABLE);
-//
-//	/* Enable pwm outputs */
-//	TIM1_CtrlPWMOutputs(ENABLE);
-//
-//	/*
-//	 * Create output trigger signal on timer update (overflow) for adc
-//	 */
-//	TIM1_SelectOutputTrigger(TIM1_TRGOSOURCE_UPDATE);
-
-
-
 
 
 	/*Timer2 Init */
 
-	/**
-	 * set to default state
-	 */
-	TIM2_DeInit();
+	  TIM2->CR1 = (uint8_t)TIM2_CR1_RESET_VALUE;
+	  TIM2->IER = (uint8_t)TIM2_IT_UPDATE;
+	  TIM2->SR2 = (uint8_t)TIM2_SR2_RESET_VALUE;
 
-	/**
-	 * timer1: prescaler 1;
-	 * period as explained earlier
-	 */
-	TIM2_TimeBaseInit(TIM2_PRESCALER_1, TIM2_RELOAD_VALUE);
+	  /* Disable channels */
+	  TIM2->CCER1 = (uint8_t)TIM2_CCER1_RESET_VALUE;
+	  TIM2->CCER2 = (uint8_t)TIM2_CCER2_RESET_VALUE;
 
-	/**
-	 * timer 1 channel 2 settings: adc feedback pin
-	 *
-	 * pwm1: cnt < ccr => inactive
-	 * enable normal output
-	 * set ccr register 0
-	 * normal output => active high
-	 */
-	TIM2_OC1Init(TIM2_OCMODE_PWM2, TIM2_OUTPUTSTATE_ENABLE, 0, TIM2_OCPOLARITY_HIGH);
 
-	//set counter to 0 to force pwm out low
-	TIM2_SetCounter(0);
-
-	//disable pre-load of ccr register since we manually disable and enable the timer around ccr writes
-	TIM2_OC1PreloadConfig(DISABLE);
-
-	//enable update event interrupts
-	TIM2_ITConfig(TIM2_IT_UPDATE, ENABLE);
+	  /* Then reset channel registers: it also works if lock level is equal to 2 or 3 */
+	  TIM2->CCMR1 = (uint8_t)TIM2_OCMODE_PWM2;
+	  TIM2->CCMR2 = (uint8_t)TIM2_CCMR2_RESET_VALUE;
+	  TIM2->CCMR3 = (uint8_t)TIM2_CCMR3_RESET_VALUE;
+	  TIM2->CCER1 = (uint8_t)(TIM2_OUTPUTSTATE_ENABLE & TIM2_CCER1_CC1E);
+	  TIM2->CNTRH = (uint8_t)TIM2_CNTRH_RESET_VALUE;
+	  TIM2->CNTRL = (uint8_t)TIM2_CNTRL_RESET_VALUE;
+	  TIM2->PSCR = (uint8_t)TIM2_PSCR_RESET_VALUE;
+	  TIM2->ARRH = (uint8_t)(TIM2_RELOAD_VALUE >> 8);
+	  TIM2->ARRL = (uint8_t)(TIM2_RELOAD_VALUE);
+	  TIM2->CCR1H = (uint8_t)TIM2_CCR1H_RESET_VALUE;
+	  TIM2->CCR1L = (uint8_t)TIM2_CCR1L_RESET_VALUE;
+	  TIM2->CCR2H = (uint8_t)TIM2_CCR2H_RESET_VALUE;
+	  TIM2->CCR2L = (uint8_t)TIM2_CCR2L_RESET_VALUE;
+	  TIM2->CCR3H = (uint8_t)TIM2_CCR3H_RESET_VALUE;
+	  TIM2->CCR3L = (uint8_t)TIM2_CCR3L_RESET_VALUE;
+	  TIM2->SR1 = (uint8_t)TIM2_SR1_RESET_VALUE;
 }
 
