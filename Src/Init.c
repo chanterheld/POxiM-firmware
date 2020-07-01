@@ -68,65 +68,116 @@ void Initialize(void){
 	/**
 	 * set to default state
 	 */
-	TIM1_DeInit();
+	//TIM1_DeInit();
 
-	/**
-	 * timer1:
-	 * prescaler 1;
-	 * upcounting;
-	 * period 2500 (6.4Khz@16Mhz clock);
-	 * repetion counter 0)
-	 */
-	TIM1_TimeBaseInit(0, TIM1_COUNTERMODE_UP,  2500,  0);
+	/////////////////////
 
 
-	/**
-	 * timer 1 channel 3 settings:
-	 * 			channel 4 has no inverse output
-	 *
-	 * pwm2: cnt < ccr => inactive
-	 * enable normal output
-	 * disable inverted output
-	 * set ccr register 0
-	 * normal output => active high
-	 * inverted output => active high
-	 * idle state low (only relevant for dead time insertion)
-	 * idle state low (only relevant for dead time insertion)
-	 */
+	  TIM1->CR1  = TIM1_CR1_RESET_VALUE;	//edge-allign upcounting mode
+	  TIM1->CR2  = (uint8_t)TIM1_TRGOSOURCE_UPDATE;
+	  TIM1->SMCR = TIM1_SMCR_RESET_VALUE;
+	  TIM1->ETR  = TIM1_ETR_RESET_VALUE;
+	  TIM1->IER  = (uint8_t)TIM1_IT_UPDATE;
+	  TIM1->SR2  = TIM1_SR2_RESET_VALUE;
+	  /* Disable channels */
+	  TIM1->CCER1 = TIM1_CCER1_RESET_VALUE;
+	  TIM1->CCER2 = TIM1_CCER2_RESET_VALUE;
+	  /* Configure channels as inputs: it is necessary if lock level is equal to 2 or 3 */
+	  TIM1->CCMR1 = 0x01;
+	  TIM1->CCMR2 = 0x01;
+//	  TIM1->CCMR3 = 0x01;
+//	  TIM1->CCMR4 = 0x01;
+	  TIM1->CCMR3 = (uint8_t)TIM1_OCMODE_PWM2 | (uint8_t)TIM1_CCMR_OCxPE;
+	  TIM1->CCMR4 = (uint8_t)TIM1_OCMODE_PWM2 | (uint8_t)TIM1_CCMR_OCxPE;
+	  /* Then reset channel registers: it also works if lock level is equal to 2 or 3 */
+	  TIM1->CCER1 = TIM1_CCER1_RESET_VALUE;
+//	  TIM1->CCER2 = TIM1_CCER2_RESET_VALUE;
+	  TIM1->CCER2 = (uint8_t)(TIM1_OUTPUTSTATE_ENABLE  & TIM1_CCER2_CC3E) | (uint8_t)(TIM1_OUTPUTSTATE_ENABLE & TIM1_CCER2_CC4E) ;
+	  TIM1->CCMR1 = TIM1_CCMR1_RESET_VALUE;
+	  TIM1->CCMR2 = TIM1_CCMR2_RESET_VALUE;
+//	  TIM1->CCMR3 = TIM1_CCMR3_RESET_VALUE;
+//	  TIM1->CCMR4 = TIM1_CCMR4_RESET_VALUE;
+	  TIM1->CNTRH = TIM1_CNTRH_RESET_VALUE;
+	  TIM1->CNTRL = TIM1_CNTRL_RESET_VALUE;
+	  TIM1->PSCRH = TIM1_PSCRH_RESET_VALUE;
+	  TIM1->PSCRL = TIM1_PSCRL_RESET_VALUE;
+	  TIM1->ARRH = (uint8_t)(2500 >> 8);
+	  TIM1->ARRL = (uint8_t)(2500);
+	  TIM1->CCR1H = TIM1_CCR1H_RESET_VALUE;
+	  TIM1->CCR1L = TIM1_CCR1L_RESET_VALUE;
+	  TIM1->CCR2H = TIM1_CCR2H_RESET_VALUE;
+	  TIM1->CCR2L = TIM1_CCR2L_RESET_VALUE;
+	  TIM1->CCR3H = (uint8_t)(3000 >> 8);
+	  TIM1->CCR3L = (uint8_t)(3000);
+	  TIM1->CCR4H = (uint8_t)(3000 >> 8);
+	  TIM1->CCR4L = (uint8_t)(3000);
+	  TIM1->OISR  = TIM1_OISR_RESET_VALUE;
+	  TIM1->EGR   = 0x01; /* TIM1_EGR_UG */
+	  TIM1->DTR   = TIM1_DTR_RESET_VALUE;
+//	  TIM1->BKR   = TIM1_BKR_RESET_VALUE;
+	  TIM1->BKR	  = TIM1_BKR_MOE;
+	  TIM1->RCR   = TIM1_RCR_RESET_VALUE;
+	  TIM1->SR1   = TIM1_SR1_RESET_VALUE;
 
-	/**
-	 * timer 1 channel 3 settings: led IR
-	 */
-	TIM1_OC3Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, TIM1_OUTPUTNSTATE_DISABLE, 3000, \
-			TIM1_OCPOLARITY_HIGH, TIM1_OCNPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET, TIM1_OCNIDLESTATE_RESET);
-
-	/**
-	 * timer 1 channel 4 settings: led R
-	 */
-	TIM1_OC4Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, 3000, \
-			TIM1_OCPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET);
-
-
-	/**
-	 * enable preload voor ccr 3,4
-	 * needed since this registers will be written to while the timer is running
-	 */
-	TIM1_OC3PreloadConfig(ENABLE);
-	TIM1_OC4PreloadConfig(ENABLE);
-
-
-	/*
-	 * enable interrupt to update led modulation ccr registers
-	 */
-	TIM1_ITConfig(TIM1_IT_UPDATE, ENABLE);
-
-	/* Enable pwm outputs */
-	TIM1_CtrlPWMOutputs(ENABLE);
-
-	/*
-	 * Create output trigger signal on timer update (overflow) for adc
-	 */
-	TIM1_SelectOutputTrigger(TIM1_TRGOSOURCE_UPDATE);
+//	/////////////////////
+//
+//	/**
+//	 * timer1:
+//	 * prescaler 1;
+//	 * upcounting;
+//	 * period 2500 (6.4Khz@16Mhz clock);
+//	 * repetion counter 0)
+//	 */
+//	TIM1_TimeBaseInit(0, TIM1_COUNTERMODE_UP,  2500,  0);
+//
+//
+//	/**
+//	 * timer 1 channel 3 settings:
+//	 * 			channel 4 has no inverse output
+//	 *
+//	 * pwm2: cnt < ccr => inactive
+//	 * enable normal output
+//	 * disable inverted output
+//	 * set ccr register 0
+//	 * normal output => active high
+//	 * inverted output => active high
+//	 * idle state low (only relevant for dead time insertion)
+//	 * idle state low (only relevant for dead time insertion)
+//	 */
+//
+//	/**
+//	 * timer 1 channel 3 settings: led IR
+//	 */
+//	TIM1_OC3Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, TIM1_OUTPUTNSTATE_DISABLE, 3000, \
+//			TIM1_OCPOLARITY_HIGH, TIM1_OCNPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET, TIM1_OCNIDLESTATE_RESET);
+//
+//	/**
+//	 * timer 1 channel 4 settings: led R
+//	 */
+//	TIM1_OC4Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, 3000, \
+//			TIM1_OCPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET);
+//
+//
+//	/**
+//	 * enable preload voor ccr 3,4
+//	 * needed since this registers will be written to while the timer is running
+//	 */
+//	TIM1_OC3PreloadConfig(ENABLE);
+//	TIM1_OC4PreloadConfig(ENABLE);
+//
+//
+//	/*
+//	 * enable interrupt to update led modulation ccr registers
+//	 */
+//	TIM1_ITConfig(TIM1_IT_UPDATE, ENABLE);
+//
+//	/* Enable pwm outputs */
+//	TIM1_CtrlPWMOutputs(ENABLE);
+//
+//	/*
+//	 * Create output trigger signal on timer update (overflow) for adc
+//	 */
+//	TIM1_SelectOutputTrigger(TIM1_TRGOSOURCE_UPDATE);
 
 
 
