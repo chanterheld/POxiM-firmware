@@ -9,8 +9,12 @@
 #include "stm8s_it.h"
 #include "defines.h"
 
+#if OPTIMIZE_ROM == 1
 
 void Initialize(void){
+
+	/* Clear High speed internal clock prescaler, set to 0 => 16mHz clock */
+	CLK->CKDIVR &= (uint8_t)(~CLK_CKDIVR_HSIDIV);
 
 	/* UART1 SETUP: */
 	/* Clear the Idle Line Detected bit in the status register by a read
@@ -140,4 +144,157 @@ void Initialize(void){
 	  TIM2->CCR3L = (uint8_t)TIM2_CCR3L_RESET_VALUE;
 	  TIM2->SR1 = (uint8_t)TIM2_SR1_RESET_VALUE;
 }
+
+#else
+
+void Timer1_configuration(void);
+void Timer2_configuration(void);
+void ADC1_configuration(void);
+
+void Initialize(void){
+
+	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
+
+	UART1_DeInit();
+	UART1_Init((uint32_t)256000, UART1_WORDLENGTH_9D, UART1_STOPBITS_1, UART1_PARITY_NO,
+			UART1_SYNCMODE_CLOCK_DISABLE, UART1_MODE_TX_ENABLE);
+
+	UART1_ITConfig(UART1_IT_TC, ENABLE);
+
+	ADC1_configuration();
+
+	Timer1_configuration();
+
+	Timer2_configuration();
+
+}
+
+
+/**
+ * Initialize timer 1:
+ * Timer 1 is the main system timer triggers the ADC and creates the PWM signals for led modulation
+ */
+void Timer1_configuration(void){
+	/**
+	 * set to default state
+	 */
+	TIM1_DeInit();
+
+	/**
+	 * timer1:
+	 * prescaler 1;
+	 * upcounting;
+	 * period 2500 (6.4Khz@16Mhz clock);
+	 * repetion counter 0)
+	 */
+	TIM1_TimeBaseInit(0, TIM1_COUNTERMODE_UP,  2500,  0);
+
+
+	/**
+	 * timer 1 channel 3 settings:
+	 * 			channel 4 has no inverse output
+	 *
+	 * pwm2: cnt < ccr => inactive
+	 * enable normal output
+	 * disable inverted output
+	 * set ccr register 0
+	 * normal output => active high
+	 * inverted output => active high
+	 * idle state low (only relevant for dead time insertion)
+	 * idle state low (only relevant for dead time insertion)
+	 */
+
+	/**
+	 * timer 1 channel 3 settings: led IR
+	 */
+	TIM1_OC3Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, TIM1_OUTPUTNSTATE_DISABLE, 3000, \
+			TIM1_OCPOLARITY_HIGH, TIM1_OCNPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET, TIM1_OCNIDLESTATE_RESET);
+
+	/**
+	 * timer 1 channel 4 settings: led R
+	 */
+	TIM1_OC4Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, 3000, \
+			TIM1_OCPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET);
+
+
+	/**
+	 * enable preload voor ccr 3,4
+	 * needed since this registers will be written to while the timer is running
+	 */
+	TIM1_OC3PreloadConfig(ENABLE);
+	TIM1_OC4PreloadConfig(ENABLE);
+
+
+	/*
+	 * enable interrupt to update led modulation ccr registers
+	 */
+	TIM1_ITConfig(TIM1_IT_UPDATE, ENABLE);
+
+	/* Enable pwm outputs */
+	TIM1_CtrlPWMOutputs(ENABLE);
+
+	/*
+	 * Create output trigger signal on timer update (overflow) for adc
+	 */
+	TIM1_SelectOutputTrigger(TIM1_TRGOSOURCE_UPDATE);
+}
+
+
+void Timer2_configuration(void){
+	/**
+	 * set to default state
+	 */
+	TIM2_DeInit();
+
+	/**
+	 * timer1: prescaler 1;
+	 * period as explained earlier
+	 */
+	TIM2_TimeBaseInit(TIM2_PRESCALER_1, TIM2_RELOAD_VALUE);
+
+	/**
+	 * timer 1 channel 2 settings: adc feedback pin
+	 *
+	 * pwm1: cnt < ccr => inactive
+	 * enable normal output
+	 * set ccr register 0
+	 * normal output => active high
+	 */
+	TIM2_OC1Init(TIM2_OCMODE_PWM2, TIM2_OUTPUTSTATE_ENABLE, 0, TIM2_OCPOLARITY_HIGH);
+
+	//set counter to 0 to force pwm out low
+	TIM2_SetCounter(0);
+
+	//disable pre-load of ccr register since we manually disable and enable the timer around ccr writes
+	TIM2_OC1PreloadConfig(DISABLE);
+
+	//enable update event interrupts
+	TIM2_ITConfig(TIM2_IT_UPDATE, ENABLE);
+}
+
+
+void ADC1_configuration(void){
+	ADC1_DeInit();
+
+	/**
+	 * single conversion
+	 * channel 6
+	 * prescaler of 8 => 2Mhz adc clock: total converstion time is 14 adc clock ticks so 7uS
+	 * disable schmitttrigger on channel 6 pin gpio
+	 *
+	 */
+	ADC1_Init(ADC1_CONVERSIONMODE_SINGLE, ADC1_CHANNEL_6, ADC1_PRESSEL_FCPU_D8, ADC1_EXTTRIG_TIM, \
+			ENABLE, ADC1_ALIGN_LEFT, ADC1_SCHMITTTRIG_CHANNEL6, DISABLE);
+
+	//enable end of conversion interrupt
+	ADC1_ITConfig(ADC1_IT_EOCIE, ENABLE);
+
+	//enable ADC
+	ADC1_Cmd(ENABLE);
+
+	//ADC1->DRH holds MSB data in left align mode
+}
+
+
+#endif
 

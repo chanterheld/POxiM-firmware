@@ -8,6 +8,8 @@
 #ifndef INC_DEFINES_H_
 #define INC_DEFINES_H_
 
+#define OPTIMIZE_ROM 1
+
 
 #define TIM2_RELOAD_VALUE		(2232)
 
