@@ -22,8 +22,8 @@ void Initialize(void){
 	UART1->BRR2 = (0x0E);
 	UART1->BRR1 = (0x03);
 
-	UART1->CR1 = UART1_CR1_RESET_VALUE;  /* Set UART1_CR1 to reset value 0x00: 8 bit no parity*/
-	UART1->CR2 = UART1_CR2_RESET_VALUE;  /* Set UART1_CR2 to reset value 0x00 */
+	UART1->CR1 =  (uint8_t)UART1_WORDLENGTH_9D ;  /* 9 dbit no parity*/
+	UART1->CR2 =  (uint8_t)(1U << 6);  	/* Set Transmission complete interrupt enable */
 	UART1->CR3 = UART1_CR3_RESET_VALUE;  /* Set UART1_CR3 to reset value 0x00 */
 	UART1->CR4 = UART1_CR4_RESET_VALUE;  /* Set UART1_CR4 to reset value 0x00 */
 	UART1->CR5 = UART1_CR5_RESET_VALUE;  /* Set UART1_CR5 to reset value 0x00 */
