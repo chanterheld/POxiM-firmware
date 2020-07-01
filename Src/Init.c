@@ -9,7 +9,7 @@
 #include "stm8s_it.h"
 #include "defines.h"
 
-#if OPTIMIZE_ROM == 1
+#if OPTIMIZE_ROM_INIT == 1
 
 void Initialize(void){
 
