@@ -1,6 +1,8 @@
 #include "stm8s.h"
 #include "stm8s_it.h"
+#include "defines.h"
 
+void Initialize(void);
 #include "filters.h"
 #include "data_buffer.h"
 
@@ -23,7 +25,6 @@ int32_t generic_2ord_iir_advance(int32_t input, int32_t *filter_memory, int32_t 
  * Choosing this value higher makes more time for timer 2 interrupt to stop the timer after a cycle but less time for the ADC EOC interrupt to start timer 2
  *
  */
-#define TIM2_RELOAD_VALUE		(2232)
 
 void Timer1_configuration(void);
 void Timer2_configuration(void);
@@ -101,48 +102,34 @@ volatile uint8_t uart1_tx_index = 0;
 void main(void)
 {
 
-	/*dunno how overdone this is but should make sure it runs at 16Mhz*/
-	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
-	CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);
-	CLK_HSIPrescalerConfig(CLK_PRESCALER_CPUDIV1);
+	Initialize();
 
-	/**
-	 * set both commons to highZ to disable leds:
-	 */
-	GPIO_Init(GPIOD, GPIO_PIN_2, GPIO_MODE_OUT_OD_HIZ_FAST);
-	GPIO_Init(GPIOD, GPIO_PIN_3, GPIO_MODE_OUT_OD_HIZ_FAST);
+	  /*
+	   * GPIO SET MODE
+	   */
+//	GPIO_Init(GPIOD, GPIO_PIN_2, GPIO_MODE_OUT_OD_HIZ_FAST);
+//	GPIO_Init(GPIOD, GPIO_PIN_3, GPIO_MODE_OUT_OD_HIZ_FAST);
+//
+//	GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_OUT_OD_HIZ_FAST);
+//	GPIO_Init(GPIOA, GPIO_PIN_2, GPIO_MODE_OUT_OD_HIZ_FAST);
+//	GPIO_Init(GPIOA, GPIO_PIN_3, GPIO_MODE_OUT_OD_HIZ_FAST);
+//
+//	GPIO_Init(GPIOB, GPIO_PIN_4, GPIO_MODE_OUT_OD_HIZ_FAST);
+//	GPIO_Init(GPIOB, GPIO_PIN_5, GPIO_MODE_OUT_OD_HIZ_FAST);
+//
+//	GPIO_Init(GPIOC, GPIO_PIN_5, GPIO_MODE_OUT_OD_HIZ_FAST);
+//	GPIO_Init(GPIOC, GPIO_PIN_6, GPIO_MODE_OUT_OD_HIZ_FAST);
 
-	GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_OUT_OD_HIZ_FAST);
-	GPIO_Init(GPIOA, GPIO_PIN_2, GPIO_MODE_OUT_OD_HIZ_FAST);
-	GPIO_Init(GPIOA, GPIO_PIN_3, GPIO_MODE_OUT_OD_HIZ_FAST);
+//
+//	/* not sure if needed but set adc input pin to floating input*/
+//	GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
 
-	GPIO_Init(GPIOB, GPIO_PIN_4, GPIO_MODE_OUT_OD_HIZ_FAST);
-	GPIO_Init(GPIOB, GPIO_PIN_5, GPIO_MODE_OUT_OD_HIZ_FAST);
-
-	GPIO_Init(GPIOC, GPIO_PIN_5, GPIO_MODE_OUT_OD_HIZ_FAST);
-	GPIO_Init(GPIOC, GPIO_PIN_6, GPIO_MODE_OUT_OD_HIZ_FAST);
-
-
-	/* not sure if needed but set adc input pin to floating input*/
-	GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
-
-	UART1_DeInit();
-	UART1_Init((uint32_t)256000, UART1_WORDLENGTH_9D, UART1_STOPBITS_1, UART1_PARITY_NO,
-			UART1_SYNCMODE_CLOCK_DISABLE, UART1_MODE_TX_ENABLE);
-
-	UART1_ITConfig(UART1_IT_TC, ENABLE);
-
-	ADC1_configuration();
-
-	Timer1_configuration();
-
-	Timer2_configuration();
 
 	/* enable interrupts */
 	enableInterrupts();
 
 	/* Enable timer 1*/
-	TIM1_Cmd(ENABLE);
+	TIM1->CR1 |= TIM1_CR1_CEN;
 
 	int32_t data_r, data_ir;
 
@@ -249,132 +236,6 @@ void main(void)
 
 	}
 
-}
-
-
-/**
- * Initialize timer 1:
- * Timer 1 is the main system timer triggers the ADC and creates the PWM signals for led modulation
- */
-void Timer1_configuration(void){
-	/**
-	 * set to default state
-	 */
-	TIM1_DeInit();
-
-	/**
-	 * timer1:
-	 * prescaler 1;
-	 * upcounting;
-	 * period 2500 (6.4Khz@16Mhz clock);
-	 * repetion counter 0)
-	 */
-	TIM1_TimeBaseInit(0, TIM1_COUNTERMODE_UP,  2500,  0);
-
-
-	/**
-	 * timer 1 channel 3 settings:
-	 * 			channel 4 has no inverse output
-	 *
-	 * pwm2: cnt < ccr => inactive
-	 * enable normal output
-	 * disable inverted output
-	 * set ccr register 0
-	 * normal output => active high
-	 * inverted output => active high
-	 * idle state low (only relevant for dead time insertion)
-	 * idle state low (only relevant for dead time insertion)
-	 */
-
-	/**
-	 * timer 1 channel 3 settings: led IR
-	 */
-	TIM1_OC3Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, TIM1_OUTPUTNSTATE_DISABLE, 3000, \
-			TIM1_OCPOLARITY_HIGH, TIM1_OCNPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET, TIM1_OCNIDLESTATE_RESET);
-
-	/**
-	 * timer 1 channel 4 settings: led R
-	 */
-	TIM1_OC4Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, 3000, \
-			TIM1_OCPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET);
-
-
-	/**
-	 * enable preload voor ccr 3,4
-	 * needed since this registers will be written to while the timer is running
-	 */
-	TIM1_OC3PreloadConfig(ENABLE);
-	TIM1_OC4PreloadConfig(ENABLE);
-
-
-	/*
-	 * enable interrupt to update led modulation ccr registers
-	 */
-	TIM1_ITConfig(TIM1_IT_UPDATE, ENABLE);
-
-	/* Enable pwm outputs */
-	TIM1_CtrlPWMOutputs(ENABLE);
-
-	/*
-	 * Create output trigger signal on timer update (overflow) for adc
-	 */
-	TIM1_SelectOutputTrigger(TIM1_TRGOSOURCE_UPDATE);
-}
-
-
-void Timer2_configuration(void){
-	/**
-	 * set to default state
-	 */
-	TIM2_DeInit();
-
-	/**
-	 * timer1: prescaler 1;
-	 * period as explained earlier
-	 */
-	TIM2_TimeBaseInit(TIM2_PRESCALER_1, TIM2_RELOAD_VALUE);
-
-	/**
-	 * timer 1 channel 2 settings: adc feedback pin
-	 *
-	 * pwm1: cnt < ccr => inactive
-	 * enable normal output
-	 * set ccr register 0
-	 * normal output => active high
-	 */
-	TIM2_OC1Init(TIM2_OCMODE_PWM2, TIM2_OUTPUTSTATE_ENABLE, 0, TIM2_OCPOLARITY_HIGH);
-
-	//set counter to 0 to force pwm out low
-	TIM2_SetCounter(0);
-
-	//disable pre-load of ccr register since we manually disable and enable the timer around ccr writes
-	TIM2_OC1PreloadConfig(DISABLE);
-
-	//enable update event interrupts
-	TIM2_ITConfig(TIM2_IT_UPDATE, ENABLE);
-}
-
-
-void ADC1_configuration(void){
-	ADC1_DeInit();
-
-	/**
-	 * single conversion
-	 * channel 6
-	 * prescaler of 8 => 2Mhz adc clock: total converstion time is 14 adc clock ticks so 7uS
-	 * disable schmitttrigger on channel 6 pin gpio
-	 *
-	 */
-	ADC1_Init(ADC1_CONVERSIONMODE_SINGLE, ADC1_CHANNEL_6, ADC1_PRESSEL_FCPU_D8, ADC1_EXTTRIG_TIM, \
-			ENABLE, ADC1_ALIGN_LEFT, ADC1_SCHMITTTRIG_CHANNEL6, DISABLE);
-
-	//enable end of conversion interrupt
-	ADC1_ITConfig(ADC1_IT_EOCIE, ENABLE);
-
-	//enable ADC
-	ADC1_Cmd(ENABLE);
-
-	//ADC1->DRH holds MSB data in left align mode
 }
 
 #define LED_R_VALUE_FROM_MOD_TABLE(table_entry)			((uint8_t)((table_entry >> 4) & 0xf))
