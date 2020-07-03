@@ -8,6 +8,8 @@
 
 void Initialize(void);
 
+#define INTERRUPT_BASED 1
+
 /*
  * filter headers:
  */
@@ -146,6 +148,8 @@ void main(void)
 //	/* not sure if needed but set adc input pin to floating input*/
 //	GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
 
+	GPIO_Init(GPIOD, GPIO_PIN_3, GPIO_MODE_OUT_PP_HIGH_FAST);
+
 
 	/* enable interrupts */
 	enableInterrupts();
@@ -155,9 +159,36 @@ void main(void)
 
 	int32_t data_r, data_ir;
 
+#if INTERRUPT_BASED != 1
+	volatile int8_t adc_val = 0;
+#endif
+
 	while (1)
 	{
+#if INTERRUPT_BASED == 1
+
 		data_r = databuffer_get_new_data();
+
+#else
+
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE);
+		if(GET_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE)){
+			(void)stage1_fir_filter_advance(adc_val, 0);
+			continue;
+		}
+
+		int16_t stage1_out = stage1_fir_filter_advance(adc_val, 1);
+
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE2_GATE);
+		if(GET_STAGE_GATE_BIT(int_gate_state, STAGE2_GATE)){
+			(void)stage2_fir_filter_advance(stage1_out, 0);
+			continue;
+		}
+
+		data_r = stage2_fir_filter_advance(stage1_out, 1);
+#endif
 
 		/*
 		 * MIXING
@@ -192,30 +223,30 @@ void main(void)
 		data_ir = stage3_fir_filter_advance(data_ir, 1, stage3_ir_filter_memory);
 
 
-//		//toggle
-//		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE);
-//		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE)){
-//			(void)stage4_fir_filter_advance(data_r, 0, stage3_r_filter_memory);
-//			(void)stage4_fir_filter_advance(data_ir, 0, stage3_ir_filter_memory);
-//
-//			continue;
-//		}
-//
-//		data_r = stage4_fir_filter_advance(data_r, 1, stage4_r_filter_memory);
-//		data_ir = stage4_fir_filter_advance(data_ir, 1, stage4_ir_filter_memory);
-
-
 		//toggle
 		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE);
 		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE)){
-			(void)generic_fir_rom_opt_advance(data_r, 0, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
-			(void)generic_fir_rom_opt_advance(data_ir, 0, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
+			(void)stage4_fir_filter_advance(data_r, 0, stage4_r_filter_memory);
+			(void)stage4_fir_filter_advance(data_ir, 0, stage4_ir_filter_memory);
 
 			continue;
 		}
 
-		data_r = generic_fir_rom_opt_advance(data_r, 1, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
-		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
+		data_r = stage4_fir_filter_advance(data_r, 1, stage4_r_filter_memory);
+		data_ir = stage4_fir_filter_advance(data_ir, 1, stage4_ir_filter_memory);
+
+
+//		//toggle
+//		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE);
+//		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE)){
+//			(void)generic_fir_rom_opt_advance(data_r, 0, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
+//			(void)generic_fir_rom_opt_advance(data_ir, 0, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
+//
+//			continue;
+//		}
+//
+//		data_r = generic_fir_rom_opt_advance(data_r, 1, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
+//		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
 
 
 		//toggle
@@ -236,7 +267,6 @@ void main(void)
 		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE6_GATE)){
 			(void)generic_fir_rom_opt_advance(data_r, 0, stage6_r_filter_memory, stage6_coeff, STAGE6_ORDER);
 			(void)generic_fir_rom_opt_advance(data_ir, 0, stage6_ir_filter_memory, stage6_coeff, STAGE6_ORDER);
-
 			continue;
 		}
 
@@ -249,12 +279,12 @@ void main(void)
 		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE7_GATE)){
 			(void)generic_fir_rom_opt_advance(data_r, 0, stage7_r_filter_memory, stage7_coeff, STAGE7_ORDER);
 			(void)generic_fir_rom_opt_advance(data_ir, 0, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
-
 			continue;
 		}
 
 		data_r = generic_fir_rom_opt_advance(data_r, 1, stage7_r_filter_memory, stage7_coeff, STAGE7_ORDER);
 		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
+
 
 		for(uint8_t i = 0; i < STAGE8_ORDER; i++){
 			data_ir = generic_2ord_iir_advance(data_ir, stage8_ir_filter_memory[i], stage8_coeff[i]);
@@ -266,19 +296,24 @@ void main(void)
 			data_r = generic_2ord_iir_advance(data_r, stage_dct_r_filter_memory[i], stage_dct_coeff[i]);
 		}
 
+#if INTERRUPT_BASED == 1
+				uart_tx_reg[0] = ((int8_t)((data_r >> 24) & 0xff)) | UART1_TX_RED_INDICATOR;
+				uart_tx_reg[1] = ((int8_t)((data_r >> 16) & 0xff)) | UART1_TX_RED_INDICATOR;
+				uart_tx_reg[2] = ((int8_t)((data_r >> 8) & 0xff)) | UART1_TX_RED_INDICATOR;
+				uart_tx_reg[3] = ((int8_t)((data_r) & 0xff)) | UART1_TX_RED_INDICATOR;
 
-		uart_tx_reg[0] = ((int8_t)((data_r >> 24) & 0xff)) | UART1_TX_RED_INDICATOR;
-		uart_tx_reg[1] = ((int8_t)((data_r >> 16) & 0xff)) | UART1_TX_RED_INDICATOR;
-		uart_tx_reg[2] = ((int8_t)((data_r >> 8) & 0xff)) | UART1_TX_RED_INDICATOR;
-		uart_tx_reg[3] = ((int8_t)((data_r) & 0xff)) | UART1_TX_RED_INDICATOR;
+				uart_tx_reg[4] = ((int8_t)((data_ir >> 24) & 0xff)) | UART1_TX_IR_INDICATOR;
+				uart_tx_reg[5] = ((int8_t)((data_ir >> 16) & 0xff)) | UART1_TX_IR_INDICATOR;
+				uart_tx_reg[6] = ((int8_t)((data_ir >> 8) & 0xff)) | UART1_TX_IR_INDICATOR;
+				uart_tx_reg[7] = ((int8_t)((data_ir) & 0xff)) | UART1_TX_IR_INDICATOR;
 
-		uart_tx_reg[4] = ((int8_t)((data_ir >> 24) & 0xff)) | UART1_TX_IR_INDICATOR;
-		uart_tx_reg[5] = ((int8_t)((data_ir >> 16) & 0xff)) | UART1_TX_IR_INDICATOR;
-		uart_tx_reg[6] = ((int8_t)((data_ir >> 8) & 0xff)) | UART1_TX_IR_INDICATOR;
-		uart_tx_reg[7] = ((int8_t)((data_ir) & 0xff)) | UART1_TX_IR_INDICATOR;
+				uart1_tx_index = 0;
+				UART1_SendData9(uart_tx_reg[0]);
 
-		uart1_tx_index = 0;
-		UART1_SendData9(uart_tx_reg[0]);
+#else
+				GPIO_WriteReverse(GPIOD, GPIO_PIN_3);
+#endif
+
 
 	}
 
@@ -338,32 +373,36 @@ INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
 	//enable timer 2
 	TIM2_Cmd(ENABLE);
 
-	//send ADC value to UART
-//	UART1->DR = adc_val;
 
 	/**
 	 * at this point further calculations will take place
 	 */
 
-	//toggle
-	TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE);
-	if(GET_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE)){
-		(void)stage1_fir_filter_advance(adc_val, 0);
-		return;
-	}
+#if INTERRUPT_BASED == 1
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE);
+		if(GET_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE)){
+			(void)stage1_fir_filter_advance(adc_val, 0);
+			return;
+		}
 
-	int16_t stage1_out = stage1_fir_filter_advance(adc_val, 1);
+		int16_t stage1_out = stage1_fir_filter_advance(adc_val, 1);
 
 
-	//toggle
-	TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE2_GATE);
-	if(GET_STAGE_GATE_BIT(int_gate_state, STAGE2_GATE)){
-		(void)stage2_fir_filter_advance(stage1_out, 0);
-		return;
-	}
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE2_GATE);
+		if(GET_STAGE_GATE_BIT(int_gate_state, STAGE2_GATE)){
+			(void)stage2_fir_filter_advance(stage1_out, 0);
+			return;
+		}
 
-	int32_t stage2_out = stage2_fir_filter_advance(stage1_out, 1);
-	databuffer_write_new_data(stage2_out);
+		int32_t stage2_out = stage2_fir_filter_advance(stage1_out, 1);
+
+		databuffer_write_new_data(stage2_out);
+#else
+
+#endif
+
 	return;
 }
 
