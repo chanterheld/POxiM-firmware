@@ -9,6 +9,7 @@
 void Initialize(void);
 
 #define INTERRUPT_BASED 1
+#define EXPORT_RAW		1
 
 /*
  * filter headers:
@@ -116,11 +117,10 @@ const int32_t mixing_table_ir[25] = {0};
 const uint8_t mixing_table_ir_size = sizeof(mixing_table_ir)/sizeof(mixing_table_ir[0]);
 uint8_t mixing_table_ir_index = 0;
 
-#define UART1_TX_RED_INDICATOR		(1U << 8)
-#define UART1_TX_IR_INDICATOR		(0U << 8)
+#define UART1_TX_RED_INDICATOR		(1U << 7)
+#define UART1_TX_IR_INDICATOR		(0U << 7)
 
-#define UART1_TX_NR_OF_BYTES		(8)
-int16_t uart_tx_reg[UART1_TX_NR_OF_BYTES] = {0};
+int8_t uart_tx_reg[10] = {0};
 volatile uint8_t uart1_tx_index = 0;
 
 void main(void)
@@ -144,11 +144,25 @@ void main(void)
 //	GPIO_Init(GPIOC, GPIO_PIN_5, GPIO_MODE_OUT_OD_HIZ_FAST);
 //	GPIO_Init(GPIOC, GPIO_PIN_6, GPIO_MODE_OUT_OD_HIZ_FAST);
 
-//
-//	/* not sure if needed but set adc input pin to floating input*/
-//	GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
+	GPIO_Init(SEGMENT0_PORT, SEGMENT0_PIN, GPIO_MODE_OUT_OD_HIZ_FAST);
+	GPIO_Init(SEGMENT1_PORT, SEGMENT1_PIN, GPIO_MODE_OUT_OD_HIZ_FAST);
+	GPIO_Init(SEGMENT2_PORT, SEGMENT2_PIN, GPIO_MODE_OUT_OD_LOW_FAST);
+	GPIO_Init(SEGMENT3_PORT, SEGMENT3_PIN, GPIO_MODE_OUT_OD_HIZ_FAST);
+	GPIO_Init(SEGMENT4_PORT, SEGMENT4_PIN, GPIO_MODE_OUT_OD_LOW_FAST);
+	GPIO_Init(SEGMENT5_PORT, SEGMENT5_PIN, GPIO_MODE_OUT_OD_HIZ_FAST);
+	GPIO_Init(SEGMENT6_PORT, SEGMENT6_PIN, GPIO_MODE_OUT_OD_HIZ_FAST);
 
-	GPIO_Init(GPIOD, GPIO_PIN_3, GPIO_MODE_OUT_PP_HIGH_FAST);
+	GPIO_Init(COMMON0_PORT, COMMON0_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
+	GPIO_Init(COMMON1_PORT, COMMON1_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
+	GPIO_Init(COMMON2_PORT, COMMON2_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
+
+
+
+
+//	/* not sure if needed but set adc input pin to floating input*/
+	GPIO_Init(ADC_IN_PORT, ADC_IN_PIN, GPIO_MODE_IN_FL_NO_IT);
+
+//	GPIO_Init(GPIOD, GPIO_PIN_3, GPIO_MODE_OUT_PP_HIGH_FAST);
 
 
 	/* enable interrupts */
@@ -165,6 +179,11 @@ void main(void)
 
 	while (1)
 	{
+
+#if EXPORT_RAW == 0
+
+
+
 #if INTERRUPT_BASED == 1
 
 		data_r = databuffer_get_new_data();
@@ -189,6 +208,7 @@ void main(void)
 
 		data_r = stage2_fir_filter_advance(stage1_out, 1);
 #endif
+
 
 		/*
 		 * MIXING
@@ -297,23 +317,30 @@ void main(void)
 		}
 
 #if INTERRUPT_BASED == 1
-				uart_tx_reg[0] = ((int8_t)((data_r >> 24) & 0xff)) | UART1_TX_RED_INDICATOR;
-				uart_tx_reg[1] = ((int8_t)((data_r >> 16) & 0xff)) | UART1_TX_RED_INDICATOR;
-				uart_tx_reg[2] = ((int8_t)((data_r >> 8) & 0xff)) | UART1_TX_RED_INDICATOR;
-				uart_tx_reg[3] = ((int8_t)((data_r) & 0xff)) | UART1_TX_RED_INDICATOR;
 
-				uart_tx_reg[4] = ((int8_t)((data_ir >> 24) & 0xff)) | UART1_TX_IR_INDICATOR;
-				uart_tx_reg[5] = ((int8_t)((data_ir >> 16) & 0xff)) | UART1_TX_IR_INDICATOR;
-				uart_tx_reg[6] = ((int8_t)((data_ir >> 8) & 0xff)) | UART1_TX_IR_INDICATOR;
-				uart_tx_reg[7] = ((int8_t)((data_ir) & 0xff)) | UART1_TX_IR_INDICATOR;
 
-				uart1_tx_index = 0;
-				UART1_SendData9(uart_tx_reg[0]);
+				uart_tx_reg[0] = ((int8_t)((data_r >> 28) & 0x0f)) | UART1_TX_RED_INDICATOR;
+				uart_tx_reg[1] = ((int8_t)((data_r >> 21) & 0x7f)) | UART1_TX_RED_INDICATOR;
+				uart_tx_reg[2] = ((int8_t)((data_r >> 14) & 0x7f)) | UART1_TX_RED_INDICATOR;
+				uart_tx_reg[3] = ((int8_t)((data_r >> 7) & 0x7f)) | UART1_TX_RED_INDICATOR;
+				uart_tx_reg[4] = ((int8_t)((data_r) & 0x7f)) | UART1_TX_RED_INDICATOR;
 
+				uart_tx_reg[5] = ((int8_t)((data_r >> 28) & 0x0f)) | UART1_TX_IR_INDICATOR;
+				uart_tx_reg[6] = ((int8_t)((data_ir >> 21) & 0x7f)) | UART1_TX_IR_INDICATOR;
+				uart_tx_reg[7] = ((int8_t)((data_ir >> 14) & 0x7f)) | UART1_TX_IR_INDICATOR;
+				uart_tx_reg[8] = ((int8_t)((data_ir >> 7) & 0x7f)) | UART1_TX_IR_INDICATOR;
+				uart_tx_reg[9] = ((int8_t)((data_ir) & 0x7f)) | UART1_TX_IR_INDICATOR;
+
+				uart1_tx_index = 10;
+				UART1->DR = uart_tx_reg[9];
 #else
 				GPIO_WriteReverse(GPIOD, GPIO_PIN_3);
 #endif
 
+#else
+				(void)data_ir;
+				(void)data_r;
+#endif
 
 	}
 
@@ -378,6 +405,9 @@ INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
 	 * at this point further calculations will take place
 	 */
 
+
+#if EXPORT_RAW == 0
+
 #if INTERRUPT_BASED == 1
 		//toggle
 		TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE);
@@ -402,6 +432,14 @@ INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
 #else
 
 #endif
+
+#else
+
+		uart1_tx_index = 1;
+		UART1->DR = adc_val;
+
+#endif
+
 
 	return;
 }
@@ -433,10 +471,9 @@ INTERRUPT_HANDLER(UART1_TX_IRQHandler, ITC_IRQ_UART1_TX)
 {
 	UART1->SR &= ~(1U<<6U);
 
-	if(++uart1_tx_index == UART1_TX_NR_OF_BYTES){
+	if(--uart1_tx_index == 0){
 		return;
 	}
 
-	//UART1->DR = uart_tx_reg[uart1_tx_index];
-	UART1_SendData9(uart_tx_reg[uart1_tx_index]);
+	UART1->DR = uart_tx_reg[uart1_tx_index-1];
 }

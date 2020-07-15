@@ -26,7 +26,7 @@ void Initialize(void){
 	UART1->BRR2 = (0x0E);
 	UART1->BRR1 = (0x03);
 
-	UART1->CR1 =  (uint8_t)UART1_WORDLENGTH_9D ;  /* 9 dbit no parity*/
+	UART1->CR1 =  (uint8_t)UART1_WORDLENGTH_8D ;  /* 9 dbit no parity*/
 	UART1->CR2 =  (uint8_t)(1U << 6);  	/* Set Transmission complete interrupt enable */
 	UART1->CR3 = UART1_CR3_RESET_VALUE;  /* Set UART1_CR3 to reset value 0x00 */
 	UART1->CR4 = UART1_CR4_RESET_VALUE;  /* Set UART1_CR4 to reset value 0x00 */
@@ -127,7 +127,7 @@ void Initialize(void){
 
 
 	  /* Then reset channel registers: it also works if lock level is equal to 2 or 3 */
-	  TIM2->CCMR1 = (uint8_t)TIM2_OCMODE_PWM2;
+	  TIM2->CCMR1 = (uint8_t)TIM2_OCMODE_PWM1;
 	  TIM2->CCMR2 = (uint8_t)TIM2_CCMR2_RESET_VALUE;
 	  TIM2->CCMR3 = (uint8_t)TIM2_CCMR3_RESET_VALUE;
 	  TIM2->CCER1 = (uint8_t)(TIM2_OUTPUTSTATE_ENABLE & TIM2_CCER1_CC1E);
@@ -156,7 +156,7 @@ void Initialize(void){
 	CLK_HSIPrescalerConfig(CLK_PRESCALER_HSIDIV1);
 
 	UART1_DeInit();
-	UART1_Init((uint32_t)256000, UART1_WORDLENGTH_9D, UART1_STOPBITS_1, UART1_PARITY_NO,
+	UART1_Init((uint32_t)256000, UART1_WORDLENGTH_8D, UART1_STOPBITS_1, UART1_PARITY_NO,
 			UART1_SYNCMODE_CLOCK_DISABLE, UART1_MODE_TX_ENABLE);
 
 	UART1_ITConfig(UART1_IT_TC, ENABLE);
@@ -260,7 +260,7 @@ void Timer2_configuration(void){
 	 * set ccr register 0
 	 * normal output => active high
 	 */
-	TIM2_OC1Init(TIM2_OCMODE_PWM2, TIM2_OUTPUTSTATE_ENABLE, 0, TIM2_OCPOLARITY_HIGH);
+	TIM2_OC1Init(TIM2_OCMODE_PWM1, TIM2_OUTPUTSTATE_ENABLE, 0, TIM2_OCPOLARITY_HIGH);
 
 	//set counter to 0 to force pwm out low
 	TIM2_SetCounter(0);
