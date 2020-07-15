@@ -338,8 +338,9 @@ void main(void)
 #endif
 
 #else
-				(void)data_ir;
-				(void)data_r;
+				data_r = 0;
+				data_ir = 0;
+
 #endif
 
 	}
