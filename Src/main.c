@@ -395,7 +395,7 @@ INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
 	int8_t adc_val = ADC1->DRH;
 
 	//set time 2 to create pulse of size (adc_val * 8)
-	TIM2_SetCompare1(TIM2_RELOAD_VALUE - (adc_val * 8) + 1);
+	TIM2_SetCompare1(TIM2_RELOAD_VALUE - (((uint8_t)adc_val) * 8) + 1);
 
 	//enable timer 2
 	TIM2_Cmd(ENABLE);
