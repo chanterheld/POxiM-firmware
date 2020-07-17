@@ -127,10 +127,10 @@ void Initialize(void){
 
 
 	  /* Then reset channel registers: it also works if lock level is equal to 2 or 3 */
-	  TIM2->CCMR1 = (uint8_t)TIM2_OCMODE_PWM1;
+	  TIM2->CCMR1 = (uint8_t)TIM2_OCMODE_PWM2;
 	  TIM2->CCMR2 = (uint8_t)TIM2_CCMR2_RESET_VALUE;
 	  TIM2->CCMR3 = (uint8_t)TIM2_CCMR3_RESET_VALUE;
-	  TIM2->CCER1 = (uint8_t)(TIM2_OUTPUTSTATE_ENABLE & TIM2_CCER1_CC1E);
+	  TIM2->CCER1 = (uint8_t)((uint8_t)(TIM2_OUTPUTSTATE_ENABLE & TIM2_CCER1_CC1E) | (uint8_t)(TIM2_OCPOLARITY_LOW & TIM2_CCER1_CC1P));
 	  TIM2->CNTRH = (uint8_t)TIM2_CNTRH_RESET_VALUE;
 	  TIM2->CNTRL = (uint8_t)TIM2_CNTRL_RESET_VALUE;
 	  TIM2->PSCR = (uint8_t)TIM2_PSCR_RESET_VALUE;
@@ -260,7 +260,7 @@ void Timer2_configuration(void){
 	 * set ccr register 0
 	 * normal output => active high
 	 */
-	TIM2_OC1Init(TIM2_OCMODE_PWM1, TIM2_OUTPUTSTATE_ENABLE, 0, TIM2_OCPOLARITY_HIGH);
+	TIM2_OC1Init(TIM2_OCMODE_PWM2, TIM2_OUTPUTSTATE_ENABLE, 0, TIM2_OCPOLARITY_LOW);
 
 	//set counter to 0 to force pwm out low
 	TIM2_SetCounter(0);
