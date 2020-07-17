@@ -64,7 +64,7 @@ void Initialize(void){
 	//ADC1->DRH holds MSB data in left align mode
 
 
-
+#if 0
 
 	/*Timer1 Init */
 	  TIM1->CR1  = TIM1_CR1_RESET_VALUE;	//edge-allign upcounting mode
@@ -113,7 +113,70 @@ void Initialize(void){
 	  TIM1->RCR   = TIM1_RCR_RESET_VALUE;
 	  TIM1->SR1   = TIM1_SR1_RESET_VALUE;
 
+#else
+		/**
+		 * set to default state
+		 */
+		TIM1_DeInit();
 
+		/**
+		 * timer1:
+		 * prescaler 1;
+		 * upcounting;
+		 * period 2500 (6.4Khz@16Mhz clock);
+		 * repetion counter 0)
+		 */
+		TIM1_TimeBaseInit(0, TIM1_COUNTERMODE_UP,  2500,  0);
+
+
+		/**
+		 * timer 1 channel 3 settings:
+		 * 			channel 4 has no inverse output
+		 *
+		 * pwm2: cnt < ccr => inactive
+		 * enable normal output
+		 * disable inverted output
+		 * set ccr register 0
+		 * normal output => active high
+		 * inverted output => active high
+		 * idle state low (only relevant for dead time insertion)
+		 * idle state low (only relevant for dead time insertion)
+		 */
+
+		/**
+		 * timer 1 channel 3 settings: led IR
+		 */
+		TIM1_OC3Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, TIM1_OUTPUTNSTATE_DISABLE, 3000, \
+				TIM1_OCPOLARITY_LOW, TIM1_OCNPOLARITY_HIGH, TIM1_OCIDLESTATE_RESET, TIM1_OCNIDLESTATE_RESET);
+
+		/**
+		 * timer 1 channel 4 settings: led R
+		 */
+		TIM1_OC4Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, 3000, \
+				TIM1_OCPOLARITY_LOW, TIM1_OCIDLESTATE_RESET);
+
+
+		/**
+		 * enable preload voor ccr 3,4
+		 * needed since this registers will be written to while the timer is running
+		 */
+		TIM1_OC3PreloadConfig(ENABLE);
+		TIM1_OC4PreloadConfig(ENABLE);
+
+
+		/*
+		 * enable interrupt to update led modulation ccr registers
+		 */
+		TIM1_ITConfig(TIM1_IT_UPDATE, ENABLE);
+
+		/* Enable pwm outputs */
+		TIM1_CtrlPWMOutputs(ENABLE);
+
+		/*
+		 * Create output trigger signal on timer update (overflow) for adc
+		 */
+		TIM1_SelectOutputTrigger(TIM1_TRGOSOURCE_UPDATE);
+#endif
 
 	/*Timer2 Init */
 
