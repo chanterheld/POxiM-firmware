@@ -349,7 +349,7 @@ void main(void)
 #define LED_R_VALUE_FROM_MOD_TABLE(table_entry)			((uint8_t)((table_entry >> 4) & 0xf))
 #define LED_IR_VALUE_FROM_MOD_TABLE(table_entry)		((uint8_t)(table_entry & 0xf))
 
-volatile uint16_t led_r_brightness = 150;
+volatile uint16_t led_r_brightness = 15;
 volatile uint16_t led_ir_brightness = 150;
 
 //static const uint8_t led_mod_table[] = {16,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16};
