@@ -349,11 +349,11 @@ void main(void)
 #define LED_R_VALUE_FROM_MOD_TABLE(table_entry)			((uint8_t)((table_entry >> 4) & 0xf))
 #define LED_IR_VALUE_FROM_MOD_TABLE(table_entry)		((uint8_t)(table_entry & 0xf))
 
-volatile uint16_t led_r_brightness = 2500;
-volatile uint16_t led_ir_brightness = 2500;
+volatile uint16_t led_r_brightness = 2250;
+volatile uint16_t led_ir_brightness = 0;
 
-static const uint8_t led_mod_table[] = {16,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16};
-static const uint16_t led_mod_table_size = sizeof(led_mod_table)/sizeof(led_mod_table[0]);
+//static const uint8_t led_mod_table[] = {16,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16};
+//static const uint16_t led_mod_table_size = sizeof(led_mod_table)/sizeof(led_mod_table[0]);
 volatile uint16_t led_mod_table_idx = 0;
 
 
@@ -367,14 +367,48 @@ INTERRUPT_HANDLER(TIM1_UPD_OVF_TRG_BRK_IRQHandler, ITC_IRQ_TIM1_OVF)
 	//clear interrupt pending flag
 	TIM1_ClearITPendingBit(TIM1_IT_UPDATE);
 
-	// write new values from lookup table to compare registers to modulate leds
-	TIM1_SetCompare4((uint16_t)(LED_R_VALUE_FROM_MOD_TABLE(led_mod_table[led_mod_table_idx]) * led_r_brightness));
-	TIM1_SetCompare3((uint16_t)(LED_IR_VALUE_FROM_MOD_TABLE(led_mod_table[led_mod_table_idx]) * led_ir_brightness));
+	if(TIM1->CR1 & (1 << 4)){
+//		// write new values from lookup table to compare registers to modulate leds
+//		TIM1_SetCompare4((uint16_t)(LED_R_VALUE_FROM_MOD_TABLE(led_mod_table[led_mod_table_idx]) * led_r_brightness));
+//		TIM1_SetCompare3((uint16_t)(LED_IR_VALUE_FROM_MOD_TABLE(led_mod_table[led_mod_table_idx]) * led_ir_brightness));
+//
+//		//increment index
 
-	//increment index
-	++led_mod_table_idx;
-	if(led_mod_table_idx == led_mod_table_size){
-		led_mod_table_idx = 0;
+		switch(led_mod_table_idx / 10){
+		case 0:
+
+			TIM1_SetCompare3(led_ir_brightness);
+			TIM1_SetCompare4(3000);
+
+			break;
+		case 1:
+
+			TIM1_SetCompare3(led_ir_brightness);
+			TIM1_SetCompare4(led_r_brightness);
+
+			break;
+		case 2:
+
+			TIM1_SetCompare3(3000);
+			TIM1_SetCompare4(led_r_brightness);
+
+			break;
+		case 3:
+
+			TIM1_SetCompare3(3000);
+			TIM1_SetCompare4(3000);
+
+			break;
+		default:
+
+			break;
+		}
+
+
+		++led_mod_table_idx;
+		if(led_mod_table_idx == 40){
+			led_mod_table_idx = 0;
+		}
 	}
 }
 

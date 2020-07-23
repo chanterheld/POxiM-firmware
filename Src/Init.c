@@ -67,7 +67,7 @@ void Initialize(void){
 
 
 	/*Timer1 Init */
-	  TIM1->CR1  = TIM1_CR1_RESET_VALUE;	//edge-allign upcounting mode
+	  TIM1->CR1  = TIM1_CR1_RESET_VALUE | (0x3 << 5);	//edge-allign upcounting mode
 	  TIM1->CR2  = (uint8_t)TIM1_TRGOSOURCE_UPDATE;
 	  TIM1->SMCR = TIM1_SMCR_RESET_VALUE;
 	  TIM1->ETR  = TIM1_ETR_RESET_VALUE;
