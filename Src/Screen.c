@@ -73,7 +73,7 @@ void ScreenDisplayNext(void){
 		}else{
 			GPIO_WriteLow(segment_ports[j], segments_pins[j]);
 		}
-		bitfield >>= bitfield;
+		bitfield >>= 1;
 	}
 
 	if(++screen_disp_index == 4){
