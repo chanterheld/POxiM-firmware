@@ -109,13 +109,10 @@ int32_t stage_dct_r_filter_memory[STAGE_DCT_ORDER][2] = {{0},{0},{0},{0},{0},{0}
 volatile uint8_t int_gate_state = 0;
 uint8_t main_gate_state = 0;
 
+const int32_t mixing_table[20] = {1394679063, 1831030810, 2088148503, 2140863672, 1984016188, 1632959376, 1122057123, 501320101, -168489625, -821806413, -1394679063, -1831030810, -2088148503, -2140863672, -1984016188, -1632959376, -1122057123, -501320101, 168489625, 821806413};
 
-const int32_t mixing_table_r[25] = {0};
-const uint8_t mixing_table_r_size = sizeof(mixing_table_r)/sizeof(mixing_table_r[0]);
-uint8_t mixing_table_r_index = 0;
-
-const int32_t mixing_table_ir[25] = {0};
-const uint8_t mixing_table_ir_size = sizeof(mixing_table_ir)/sizeof(mixing_table_ir[0]);
+const uint8_t mixing_table_size = sizeof(mixing_table)/sizeof(mixing_table[0]);
+uint8_t mixing_table_r_index = 5;
 uint8_t mixing_table_ir_index = 0;
 
 #define UART1_TX_RED_INDICATOR		(1U << 7)
@@ -196,17 +193,17 @@ void main(void)
 		 * MIXING
 		 */
 		int64_t mix_tmp;
-		mix_tmp = data_r * mixing_table_ir[mixing_table_ir_index];
+		mix_tmp = data_r * mixing_table[mixing_table_ir_index];
 		data_ir = ((int32_t *)(&mix_tmp))[0];
 
-		mix_tmp = data_r * mixing_table_r[mixing_table_r_index];
+		mix_tmp = data_r * mixing_table[mixing_table_r_index];
 		data_r = ((int32_t *)(&mix_tmp))[0];
 
 		//increment indexes
-		if(++mixing_table_r_index == mixing_table_r_size){
+		if(++mixing_table_r_index == mixing_table_size){
 			mixing_table_r_index = 0;
 		}
-		if(++mixing_table_ir_index == mixing_table_ir_size){
+		if(++mixing_table_ir_index == mixing_table_size){
 			mixing_table_ir_index = 0;
 		}
 
