@@ -135,7 +135,7 @@ void main(void)
 
 	ScreenInit();
 
-	SetScreen(256, 0);
+	SetScreen(0, 0);
 
 	GPIO_Init(LED_R_PORT, LED_R_PIN, GPIO_MODE_OUT_OD_LOW_FAST);
 	GPIO_Init(LED_IR_PORT, LED_IR_PIN, GPIO_MODE_OUT_OD_LOW_FAST);
@@ -156,6 +156,8 @@ void main(void)
 	volatile int8_t adc_val = 0;
 	GPIO_Init(GPIOD, GPIO_PIN_3, GPIO_MODE_OUT_PP_HIGH_FAST);
 #endif
+
+	uint8_t screen_val = 0, screen_loop_cnt = 0;
 
 	while (1)
 	{
@@ -223,30 +225,30 @@ void main(void)
 		data_ir = stage3_fir_filter_advance(data_ir, 1, stage3_ir_filter_memory);
 
 
-		//toggle
-		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE);
-		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE)){
-			(void)stage4_fir_filter_advance(data_r, 0, stage4_r_filter_memory);
-			(void)stage4_fir_filter_advance(data_ir, 0, stage4_ir_filter_memory);
-
-			continue;
-		}
-
-		data_r = stage4_fir_filter_advance(data_r, 1, stage4_r_filter_memory);
-		data_ir = stage4_fir_filter_advance(data_ir, 1, stage4_ir_filter_memory);
-
-
 //		//toggle
 //		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE);
 //		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE)){
-//			(void)generic_fir_rom_opt_advance(data_r, 0, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
-//			(void)generic_fir_rom_opt_advance(data_ir, 0, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
+//			(void)stage4_fir_filter_advance(data_r, 0, stage4_r_filter_memory);
+//			(void)stage4_fir_filter_advance(data_ir, 0, stage4_ir_filter_memory);
 //
 //			continue;
 //		}
 //
-//		data_r = generic_fir_rom_opt_advance(data_r, 1, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
-//		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
+//		data_r = stage4_fir_filter_advance(data_r, 1, stage4_r_filter_memory);
+//		data_ir = stage4_fir_filter_advance(data_ir, 1, stage4_ir_filter_memory);
+
+
+		//toggle
+		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE);
+		if(GET_STAGE_GATE_BIT(main_gate_state, STAGE4_GATE)){
+			(void)generic_fir_rom_opt_advance(data_r, 0, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
+			(void)generic_fir_rom_opt_advance(data_ir, 0, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
+
+			continue;
+		}
+
+		data_r = generic_fir_rom_opt_advance(data_r, 1, stage4_r_filter_memory, stage4_coeff, STAGE4_ORDER);
+		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage4_ir_filter_memory, stage4_coeff, STAGE4_ORDER);
 
 
 		//toggle
@@ -261,6 +263,7 @@ void main(void)
 		data_r = generic_fir_rom_opt_advance(data_r, 1, stage5_r_filter_memory, stage5_coeff, STAGE5_ORDER);
 		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage5_ir_filter_memory, stage5_coeff, STAGE5_ORDER);
 
+		ScreenDisplayNext();
 
 		//toggle
 		TOGGLE_STAGE_GATE_BIT(main_gate_state, STAGE6_GATE);
@@ -296,7 +299,15 @@ void main(void)
 			data_r = generic_2ord_iir_advance(data_r, stage_dct_r_filter_memory[i], stage_dct_coeff[i]);
 		}
 
-		ScreenDisplayNext();
+
+		if(++screen_loop_cnt == 25){
+			screen_loop_cnt = 0;
+			if(++screen_val == 251){
+				screen_val = 0;
+			}
+			SetScreen(screen_val, 0);
+		}
+
 
 
 #if INTERRUPT_BASED == 1
