@@ -102,6 +102,15 @@ uint8_t mixing_table_ir_index = 0;
 int8_t uart_tx_reg[10] = {0};
 volatile uint8_t uart1_tx_index = 0;
 
+int32_t dct_value_r = 0xffffffff/2;
+int32_t dct_value_ir = 0xffffffff/2;
+const int32_t dct_alpha = 2143192972;
+const int32_t dct_alpha_inv = 2147483647 - 2143192972;
+int64_t tmp;
+
+volatile uint8_t led_r_brightness = 10;
+volatile uint8_t led_ir_brightness = 100;
+
 void main(void)
 {
 
@@ -267,6 +276,12 @@ void main(void)
 		data_ir = generic_fir_rom_opt_advance(data_ir, 1, stage7_ir_filter_memory, stage7_coeff, STAGE7_ORDER);
 
 
+		tmp = (dct_alpha * dct_value_r) + (dct_alpha_inv * data_r);
+		dct_value_r = ((int32_t *)(&tmp))[0];
+
+		tmp = (dct_alpha * dct_value_ir) + (dct_alpha_inv * data_ir);
+		dct_value_ir = ((int32_t *)(&tmp))[0];
+
 		if(++screen_loop_cnt == 25){
 			screen_loop_cnt = 0;
 			if(++screen_val == 251){
@@ -275,10 +290,7 @@ void main(void)
 			SetScreen(screen_val, 0);
 		}
 
-
-
 #if INTERRUPT_BASED == 1
-
 
 				uart_tx_reg[0] = ((int8_t)((data_r >> 28) & 0x0f)) | UART1_TX_RED_INDICATOR;
 				uart_tx_reg[1] = ((int8_t)((data_r >> 21) & 0x7f)) | UART1_TX_RED_INDICATOR;
@@ -308,14 +320,13 @@ void main(void)
 
 }
 
+
+#define LED_BRIGHTNESS(procent)							((100 - procent) * 24)
+
 #define LED_R_VALUE_FROM_MOD_TABLE(table_entry)			((uint8_t)((table_entry >> 4) & 0xf))
 #define LED_IR_VALUE_FROM_MOD_TABLE(table_entry)		((uint8_t)(table_entry & 0xf))
 
-volatile uint16_t led_r_brightness = 2250;
-volatile uint16_t led_ir_brightness = 0;
 
-//static const uint8_t led_mod_table[] = {16,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16};
-//static const uint16_t led_mod_table_size = sizeof(led_mod_table)/sizeof(led_mod_table[0]);
 volatile uint16_t led_mod_table_idx = 0;
 
 
@@ -339,26 +350,26 @@ INTERRUPT_HANDLER(TIM1_UPD_OVF_TRG_BRK_IRQHandler, ITC_IRQ_TIM1_OVF)
 		switch(led_mod_table_idx / 10){
 		case 0:
 
-			TIM1_SetCompare3(led_ir_brightness);
-			TIM1_SetCompare4(3000);
+			TIM1_SetCompare3(LED_BRIGHTNESS(led_ir_brightness));
+			TIM1_SetCompare4(LED_BRIGHTNESS(0));
 
 			break;
 		case 1:
 
-			TIM1_SetCompare3(led_ir_brightness);
-			TIM1_SetCompare4(led_r_brightness);
+			TIM1_SetCompare3(LED_BRIGHTNESS(led_ir_brightness));
+			TIM1_SetCompare4(LED_BRIGHTNESS(led_r_brightness));
 
 			break;
 		case 2:
 
-			TIM1_SetCompare3(3000);
-			TIM1_SetCompare4(led_r_brightness);
+			TIM1_SetCompare3(LED_BRIGHTNESS(0));
+			TIM1_SetCompare4(LED_BRIGHTNESS(led_r_brightness));
 
 			break;
 		case 3:
 
-			TIM1_SetCompare3(3000);
-			TIM1_SetCompare4(3000);
+			TIM1_SetCompare3(LED_BRIGHTNESS(0));
+			TIM1_SetCompare4(LED_BRIGHTNESS(0));
 
 			break;
 		default:
