@@ -10,7 +10,7 @@
 void Initialize(void);
 
 #define INTERRUPT_BASED 1
-#define EXPORT_RAW		0
+#define EXPORT_RAW		1
 
 /*
  * filter headers:
