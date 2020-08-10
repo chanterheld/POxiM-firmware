@@ -21,8 +21,8 @@
 
 #define FILTER_NAME				stage1
 #define FILTER_SIZE				6
-#define filter_input_type		int8_t
-#define filter_output_type		int16_t
+#define filter_input_type		uint8_t
+#define filter_output_type		uint16_t
 
 
 FILTER_MEMORY_MEM_SAVE(FILTER_NAME, filter_output_type, FILTER_SIZE);

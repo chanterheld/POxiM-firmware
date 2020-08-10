@@ -10,19 +10,19 @@
 
 #include "filters.h"
 
-#define c0	(126)
-#define c1	(1016)
-#define c2	(3576)
-#define c3	(7176)
-#define c4	(8980)
-#define c5	(7176)
-#define c6	(3576)
-#define c7	(1016)
-#define c8	(126)
+#define c0	(126/2)
+#define c1	(1016/2)
+#define c2	(3576/2)
+#define c3	(7176/2)
+#define c4	(8980/2)
+#define c5	(7176/2)
+#define c6	(3576/2)
+#define c7	(1016/2)
+#define c8	(126/2)
 
 #define FILTER_NAME				stage2
 #define FILTER_SIZE				8
-#define filter_input_type		int16_t
+#define filter_input_type		uint16_t
 #define filter_output_type		int32_t
 
 
