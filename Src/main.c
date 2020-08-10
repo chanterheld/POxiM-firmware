@@ -15,8 +15,8 @@ void Initialize(void);
 /*
  * filter headers:
  */
-int16_t stage1_fir_filter_advance(int8_t input, char output_cycle);
-int32_t stage2_fir_filter_advance(int16_t input, char output_cycle);
+uint16_t stage1_fir_filter_advance(uint8_t input, char output_cycle);
+int32_t stage2_fir_filter_advance(uint16_t input, char output_cycle);
 
 int32_t stage3_fir_filter_advance(int32_t input, char output_cycle, int32_t *_filter_memory);
 int32_t stage4_fir_filter_advance(int32_t input, char output_cycle, int32_t *_filter_memory);
@@ -419,11 +419,11 @@ INTERRUPT_HANDLER(ADC1_IRQHandler, ITC_IRQ_ADC1)
 		//toggle
 		TOGGLE_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE);
 		if(GET_STAGE_GATE_BIT(int_gate_state, STAGE1_GATE)){
-			(void)stage1_fir_filter_advance(adc_val, 0);
+			(void)stage1_fir_filter_advance(((uint8_t)adc_val), 0);
 			return;
 		}
 
-		int16_t stage1_out = stage1_fir_filter_advance(adc_val, 1);
+		uint16_t stage1_out = stage1_fir_filter_advance(((uint8_t)adc_val), 1);
 
 
 		//toggle
