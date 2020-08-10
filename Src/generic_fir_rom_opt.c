@@ -20,8 +20,8 @@ filter_output_type generic_fir_rom_opt_advance(filter_input_type input, char out
 		int32_t mem0_backup = filter_memory[0];
 
 		for(uint8_t i = 2; i < filter_order; i+=2){
-			int64_t temp = 	input * filter_coeff[i] + filter_memory[(i/2)];
-			filter_memory[(i/2) - 1] = ((filter_output_type *)(&temp))[0];
+			int64_t temp = 	input * filter_coeff[i];
+			filter_memory[(i/2) - 1] = ((filter_output_type *)(&temp))[0] + filter_memory[(i/2)];
 		}
 
 		/* final line using only input and no older values*/
@@ -32,8 +32,8 @@ filter_output_type generic_fir_rom_opt_advance(filter_input_type input, char out
 	}else{
 
 		for(uint8_t i = 1; i < filter_order; i+=2){
-			int64_t temp = input * filter_coeff[i] + filter_memory[((i - 1)/2)];
-			filter_memory[((i - 1)/2)] = ((filter_output_type *)(&temp))[0];
+			int64_t temp = input * filter_coeff[i];
+			filter_memory[((i - 1)/2)] = ((filter_output_type *)(&temp))[0] + filter_memory[((i - 1)/2)];
 		}
 
 		return 0;
