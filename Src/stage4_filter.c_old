@@ -32,7 +32,7 @@ DEC_FIR_FILTER_ADVANCE_MEM_IN(FILTER_NAME, filter_input_type, filter_output_type
 
 	if(output_cycle == 1){
 
-		FILTER_FIRST_LINE_MEM_SAVE(, int64_t);
+		FILTER_FIRST_LINE_MEM_SAVE_CAST(, int64_t);
 
 		FILTER_LINE_MEM_SAVE_MOVE_CAST(, 2, filter_output_type);
 		FILTER_LINE_MEM_SAVE_MOVE_CAST(, 4, filter_output_type);

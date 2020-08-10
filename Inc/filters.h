@@ -28,6 +28,7 @@ typedef   signed long long     int64_t;
 #define FILTER_LAST_LINE(name, nr)							CONCAT(name,_filter_memory)[nr - 1] = input * (c ## nr)
 #define FILTER_FIRST_LINE(name, type)						type retval	= input * c0 + CONCAT(name,_filter_memory)[0]
 
+
 /*
  * mem save
  */
@@ -36,8 +37,11 @@ typedef   signed long long     int64_t;
 #define FILTER_MEMORY_MEM_SAVE(name, type, size)			volatile type CONCAT(name,_filter_memory)[(size/2) + 1] = {0}
 
 #define FILTER_FIRST_LINE_MEM_SAVE(name, type)				FILTER_FIRST_LINE(name, type)
+#define FILTER_FIRST_LINE_MEM_SAVE_CAST(name, type, c_type) type retval	= input * c0;					\
+															c_type mem0_backup = CONCAT(name,_filter_memory)[0]
 
-#define FILTER_RETURN_MEM_SAVE_CAST(type_out)			((type_out *)(&retval))[0]
+
+#define FILTER_RETURN_MEM_SAVE_CAST(type_out)			((type_out *)(&retval))[0] + mem0_backup;
 
 
 

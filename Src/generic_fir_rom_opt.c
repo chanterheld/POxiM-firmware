@@ -16,7 +16,8 @@ filter_output_type generic_fir_rom_opt_advance(filter_input_type input, char out
 
 	if(output_cycle == 1){
 
-		int64_t retval	= input * filter_coeff[0] + filter_memory[0];
+		int64_t retval	= input * filter_coeff[0];
+		int32_t mem0_backup = filter_memory[0];
 
 		for(uint8_t i = 2; i < filter_order; i+=2){
 			int64_t temp = 	input * filter_coeff[i] + filter_memory[(i/2)];
