@@ -47,14 +47,14 @@ typedef   signed long long     int64_t;
 
 /* even*/
 #define FILTER_LINE_MEM_SAVE_MOVE(name, nr)					CONCAT(name,_filter_memory)[(nr/2) - 1] = input * (c ## nr) + CONCAT(name,_filter_memory)[(nr/2)]
-#define FILTER_LINE_MEM_SAVE_MOVE_CAST(name, nr, c_type)	temp = 	input * (c ## nr) + CONCAT(name,_filter_memory)[(nr/2)];				\
-															CONCAT(name,_filter_memory)[(nr/2) - 1] = ((c_type *)(&temp))[0]
+#define FILTER_LINE_MEM_SAVE_MOVE_CAST(name, nr, c_type)	temp = 	input * (c ## nr);				\
+															CONCAT(name,_filter_memory)[(nr/2) - 1] = ((c_type *)(&temp))[0]  + CONCAT(name,_filter_memory)[(nr/2)]
 
 /*odd*/
 #define FILTER_LINE_MEM_SAVE_STATIONARY(name, nr)			CONCAT(name,_filter_memory)[((nr - 1)/2)] = input * (c ## nr) + CONCAT(name,_filter_memory)[((nr - 1)/2)]
 #define FILTER_LINE_MEM_SAVE_STATIONARY_CAST(name, nr, c_type)																				\
-															temp = input * (c ## nr) + CONCAT(name,_filter_memory)[((nr - 1)/2)];			\
-															CONCAT(name,_filter_memory)[((nr - 1)/2)] = ((c_type *)(&temp))[0]
+															temp = input * (c ## nr);			\
+															CONCAT(name,_filter_memory)[((nr - 1)/2)] = ((c_type *)(&temp))[0] + CONCAT(name,_filter_memory)[((nr - 1)/2)]
 
 
 #define FILTER_LAST_LINE_MEM_SAVE_EVEN(name, nr)			CONCAT(name,_filter_memory)[(nr/2) - 1] = input * (c ## nr)
