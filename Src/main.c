@@ -21,7 +21,7 @@ int32_t stage2_fir_filter_advance(int16_t input, char output_cycle);
 int32_t stage3_fir_filter_advance(int32_t input, char output_cycle, int32_t *_filter_memory);
 int32_t stage4_fir_filter_advance(int32_t input, char output_cycle, int32_t *_filter_memory);
 
-int32_t generic_fir_rom_opt_advance(uint32_t input, char output_cycle, uint32_t *filter_memory, uint32_t *filter_coeff, uint8_t filter_order);
+int32_t generic_fir_rom_opt_advance(uint32_t input, char output_cycle, int32_t *filter_memory, int32_t *filter_coeff, uint8_t filter_order);
 
 int32_t generic_2ord_iir_advance(int32_t input, int32_t *filter_memory, int32_t *coeff);
 
